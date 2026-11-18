@@ -132,7 +132,7 @@
 
     card.addEventListener('click', () => App.nav.toGarment(item.id));
     card.querySelector('.card__delete').addEventListener('click', (event) => {
-      handleDelete(event, item, card);
+      handleDelete(event, item);
     });
     return card;
   }
@@ -160,21 +160,15 @@
     });
   }
 
-  async function handleDelete(event, item, card) {
+  async function handleDelete(event, item) {
     event.stopPropagation();
-    const button = card.querySelector('.card__delete');
 
-    if (!card.classList.contains('is-confirming')) {
-      card.classList.add('is-confirming');
-      button.textContent = '确认删除';
-      setTimeout(() => {
-        if (card.isConnected) {
-          card.classList.remove('is-confirming');
-          button.textContent = '✕';
-        }
-      }, 3000);
-      return;
-    }
+    const confirmed = await App.ui.confirm({
+      title: `删除「${item.name}」？`,
+      message: '这件衣服的三张角度图也会一起删除，无法恢复。',
+      confirmText: '删除',
+    });
+    if (!confirmed) return;
 
     try {
       await App.api.del(`/api/garments/${item.id}`);

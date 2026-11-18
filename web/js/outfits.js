@@ -132,7 +132,7 @@
 
     el.addEventListener('click', () => App.nav.toOutfit(outfit.id));
     el.querySelector('.card__delete').addEventListener('click', (event) => {
-      handleDelete(event, outfit, el);
+      handleDelete(event, outfit);
     });
     return el;
   }
@@ -162,21 +162,15 @@
     });
   }
 
-  async function handleDelete(event, outfit, cardEl) {
+  async function handleDelete(event, outfit) {
     event.stopPropagation();
-    const button = cardEl.querySelector('.card__delete');
 
-    if (!cardEl.classList.contains('is-confirming')) {
-      cardEl.classList.add('is-confirming');
-      button.textContent = '确认删除';
-      setTimeout(() => {
-        if (cardEl.isConnected) {
-          cardEl.classList.remove('is-confirming');
-          button.textContent = '✕';
-        }
-      }, 3000);
-      return;
-    }
+    const confirmed = await App.ui.confirm({
+      title: `删除搭配「${outfit.name}」？`,
+      message: '画布布局和已上传的上身图会一起删除，无法恢复。',
+      confirmText: '删除',
+    });
+    if (!confirmed) return;
 
     try {
       await App.api.del(`/api/outfits/${outfit.id}`);

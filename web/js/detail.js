@@ -232,32 +232,24 @@
 
   // ---------------------------------------------------------------- 删除
 
-  function resetDeleteButton() {
-    els.deleteBtn.dataset.armed = '';
-    els.deleteBtn.textContent = '删除';
-  }
-
   async function onDelete() {
-    if (els.deleteBtn.dataset.armed !== '1') {
-      els.deleteBtn.dataset.armed = '1';
-      els.deleteBtn.textContent = '确认删除？';
-      setTimeout(() => {
-        if (els.deleteBtn.dataset.armed === '1') {
-          resetDeleteButton();
-        }
-      }, 3000);
-      return;
-    }
+    const garment = state.garment;
+    if (!garment) return;
+
+    const confirmed = await App.ui.confirm({
+      title: `删除「${garment.name}」？`,
+      message: '这件衣服的三张角度图也会一起删除，无法恢复。',
+      confirmText: '删除',
+    });
+    if (!confirmed) return;
 
     try {
-      await App.api.del(`/api/garments/${state.garment.id}`);
+      await App.api.del(`/api/garments/${garment.id}`);
       App.ui.toast('已删除');
-      resetDeleteButton();
       App.nav.toWardrobe();
       App.wardrobe.load();
     } catch (err) {
       App.ui.toast(err.message, 'error');
-      resetDeleteButton();
     }
   }
 
@@ -266,7 +258,6 @@
   async function load(garmentId) {
     try {
       state.garment = await App.api.get(`/api/garments/${garmentId}`);
-      resetDeleteButton();
       render();
     } catch (err) {
       App.ui.toast(err.message, 'error');

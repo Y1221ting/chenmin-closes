@@ -40,7 +40,6 @@
   };
 
   const els = {};
-  let deleteArmed = false;
 
   function cache() {
     els.page = document.getElementById('page-outfit');
@@ -83,7 +82,6 @@
   async function load(outfitId) {
     clearTimeout(state.saveTimer);
     clearTimeout(state.metaTimer);
-    resetDelete();
 
     try {
       const [outfit, garments] = await Promise.all([
@@ -350,9 +348,16 @@
     scheduleSave();
   }
 
-  function deleteSelected() {
+  async function deleteSelected() {
     const item = selectedItem();
     if (!item) return;
+
+    const confirmed = await App.ui.confirm({
+      title: `从搭配中移除「${item.garment.name}」？`,
+      message: '只会从这套搭配里移除，衣柜里的原图不会删除。',
+      confirmText: '移除',
+    });
+    if (!confirmed) return;
 
     state.items = state.items.filter((entry) => entry !== item);
     state.selectedKey = null;
@@ -445,31 +450,23 @@
 
   // ---------------------------------------------------------------- 删除搭配
 
-  function resetDelete() {
-    deleteArmed = false;
-    els.deleteBtn.dataset.armed = '';
-    els.deleteBtn.textContent = '删除';
-  }
-
   async function onDeleteOutfit() {
-    if (!deleteArmed) {
-      deleteArmed = true;
-      els.deleteBtn.dataset.armed = '1';
-      els.deleteBtn.textContent = '确认删除？';
-      setTimeout(() => {
-        if (deleteArmed) resetDelete();
-      }, 3000);
-      return;
-    }
+    const outfit = state.outfit;
+    if (!outfit) return;
+
+    const confirmed = await App.ui.confirm({
+      title: `删除搭配「${outfit.name}」？`,
+      message: '画布布局和已上传的上身图会一起删除，无法恢复。',
+      confirmText: '删除',
+    });
+    if (!confirmed) return;
 
     try {
-      await App.api.del(`/api/outfits/${state.outfit.id}`);
-      resetDelete();
+      await App.api.del(`/api/outfits/${outfit.id}`);
       App.ui.toast('已删除搭配');
       App.nav.toOutfits();
     } catch (err) {
       App.ui.toast(err.message, 'error');
-      resetDelete();
     }
   }
 

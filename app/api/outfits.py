@@ -14,8 +14,8 @@ def _outfit_id(req: Request) -> int:
         raise ValidationError("搭配编号不正确") from exc
 
 
-def list_outfits(_req: Request) -> tuple[int, dict]:
-    return 200, {"ok": True, "data": outfit_service.list_outfits()}
+def list_outfits(req: Request) -> tuple[int, dict]:
+    return 200, {"ok": True, "data": outfit_service.list_outfits(req.query)}
 
 
 def create_outfit(req: Request) -> tuple[int, dict]:

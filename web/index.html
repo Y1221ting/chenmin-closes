@@ -89,12 +89,27 @@
           </div>
         </header>
 
+        <div class="filters">
+          <div class="filters__row" id="outfit-scene-filters"></div>
+          <div class="filters__row">
+            <input id="outfit-search" class="input input--search" type="search"
+                   placeholder="搜索搭配…" autocomplete="off">
+            <button id="btn-outfit-clear" class="btn btn--link" type="button" hidden>清除筛选</button>
+          </div>
+        </div>
+
         <section class="grid" id="outfit-grid"></section>
 
         <section class="empty" id="outfit-empty" hidden>
           <p class="empty__title">还没有搭配</p>
           <p class="empty__text">新建一套搭配，把衣服拖到画布上自由组合。</p>
           <button class="btn btn--primary" id="btn-new-outfit-empty" type="button">新建第一套搭配</button>
+        </section>
+
+        <section class="empty" id="outfit-filter-empty" hidden>
+          <p class="empty__title">没有符合条件的搭配</p>
+          <p class="empty__text">换个场景或关键词试试。</p>
+          <button class="btn btn--ghost" id="btn-outfit-clear-empty" type="button">清除筛选</button>
         </section>
       </section>
 
@@ -107,6 +122,7 @@
           </div>
           <div class="topbar__actions">
             <span id="save-status" class="save-status">已保存</span>
+            <button id="btn-export" class="btn btn--ghost" type="button">导出图片</button>
             <button id="btn-outfit-delete" class="btn btn--ghost btn--danger" type="button">删除</button>
           </div>
         </header>

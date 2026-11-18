@@ -33,39 +33,68 @@ def _validate_meta(data: dict) -> dict:
 # ---------------------------------------------------------------- 查询
 
 
-def list_outfits() -> list[dict]:
-    """搭配列表，带封面、件数和类别。"""
+def list_outfits(filters: dict | None = None) -> list[dict]:
+    """搭配列表，带画布布局（用于封面预览）、件数和类别。"""
+    filters = filters or {}
+    sql = "SELECT * FROM outfits WHERE 1 = 1"
+    args: list[object] = []
+
+    scene = (filters.get("scene") or "").strip()
+    if scene:
+        sql += " AND scenes LIKE ?"
+        args.append(f'%"{scene}"%')
+
+    keyword = (filters.get("q") or "").strip()
+    if keyword:
+        sql += " AND name LIKE ?"
+        args.append(f"%{keyword}%")
+
+    sql += " ORDER BY updated_at DESC, id DESC"
+
     conn = get_conn()
     try:
-        outfits = rows_to_dicts(
-            conn.execute(
-                "SELECT * FROM outfits ORDER BY updated_at DESC, id DESC"
-            ).fetchall()
-        )
+        outfits = rows_to_dicts(conn.execute(sql, args).fetchall())
         if not outfits:
             return []
 
         ids = [item["id"] for item in outfits]
         placeholders = ",".join("?" for _ in ids)
         rows = conn.execute(
-            f"SELECT oi.outfit_id, oi.garment_id, g.category "
-            f"FROM outfit_items oi JOIN garments g ON g.id = oi.garment_id "
+            f"SELECT oi.outfit_id, oi.garment_id, oi.x, oi.y, oi.scale, "
+            f"       oi.rotation, oi.z_index, g.category, gi.path AS front_path "
+            f"FROM outfit_items oi "
+            f"JOIN garments g ON g.id = oi.garment_id "
+            f"LEFT JOIN garment_images gi "
+            f"  ON gi.garment_id = g.id AND gi.angle = 'front' "
             f"WHERE oi.outfit_id IN ({placeholders}) AND oi.view = 'flat' "
             f"ORDER BY oi.outfit_id, oi.z_index, oi.id",
             ids,
         ).fetchall()
 
-        grouped: dict[int, list[sqlite3.Row]] = {}
+        grouped: dict[int, list[dict]] = {}
         for row in rows:
-            grouped.setdefault(row["outfit_id"], []).append(row)
+            grouped.setdefault(row["outfit_id"], []).append(
+                {
+                    "garment_id": row["garment_id"],
+                    "x": row["x"],
+                    "y": row["y"],
+                    "scale": row["scale"],
+                    "rotation": row["rotation"],
+                    "z_index": row["z_index"],
+                    "category": row["category"],
+                    "image": row["front_path"]
+                    or f"garments/{row['garment_id']}/thumb.webp",
+                }
+            )
 
         for outfit in outfits:
             items = grouped.get(outfit["id"], [])
+            outfit["items"] = items
             outfit["item_count"] = len(items)
             outfit["cover"] = (
                 f"garments/{items[0]['garment_id']}/thumb.webp" if items else None
             )
-            outfit["categories"] = sorted({row["category"] for row in items})
+            outfit["categories"] = sorted({item["category"] for item in items})
         return outfits
     except sqlite3.Error as exc:
         logger.exception("查询搭配列表失败")

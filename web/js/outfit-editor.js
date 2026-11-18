@@ -57,6 +57,7 @@
     els.itemRotation = document.getElementById('item-rotation');
     els.itemRotationValue = document.getElementById('item-rotation-value');
     els.deleteBtn = document.getElementById('btn-outfit-delete');
+    els.exportBtn = document.getElementById('btn-export');
   }
 
   function clamp(value, min, max) {
@@ -445,6 +446,79 @@
     }
   }
 
+  // ---------------------------------------------------------------- 导出
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('图片加载失败'));
+      img.src = src;
+    });
+  }
+
+  async function exportOutfit() {
+    if (!state.outfit) return;
+    if (!state.items.length) {
+      App.ui.toast('画布是空的，先添加衣服', 'error');
+      return;
+    }
+
+    els.exportBtn.disabled = true;
+    els.exportBtn.textContent = '导出中…';
+
+    try {
+      const stamp = Date.now();
+      const loaded = [];
+      for (const item of state.items) {
+        const img = await loadImage(`/data/${item.garment.image}?v=${stamp}`);
+        loaded.push({ item, img });
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 1600;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      loaded
+        .sort((a, b) => a.item.z_index - b.item.z_index)
+        .forEach(({ item, img }) => {
+          const category = item.garment.category;
+          const width =
+            ((BASE_WIDTH[category] || 30) / 100) * canvas.width * item.scale;
+          const height = width * (img.naturalHeight / img.naturalWidth);
+          ctx.save();
+          ctx.translate(item.x * canvas.width, item.y * canvas.height);
+          ctx.rotate((item.rotation * Math.PI) / 180);
+          ctx.drawImage(img, -width / 2, -height / 2, width, height);
+          ctx.restore();
+        });
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('生成图片失败');
+
+      const name = els.name.value.trim() || '搭配';
+      const result = await App.api.upload(
+        `/api/export?name=${encodeURIComponent(name)}`,
+        blob
+      );
+      App.ui.toast(`已导出：${result.name}`);
+
+      try {
+        await App.api.post('/api/exports/open');
+      } catch (ignore) {
+        /* 打不开文件夹不影响导出结果 */
+      }
+    } catch (err) {
+      App.ui.toast(err.message || '导出失败', 'error');
+    } finally {
+      els.exportBtn.disabled = false;
+      els.exportBtn.textContent = '导出图片';
+    }
+  }
+
   // ---------------------------------------------------------------- 初始化
 
   function init(meta) {
@@ -455,6 +529,7 @@
       .getElementById('btn-outfit-back')
       .addEventListener('click', () => App.nav.toOutfits());
     els.deleteBtn.addEventListener('click', onDeleteOutfit);
+    els.exportBtn.addEventListener('click', exportOutfit);
 
     els.search.addEventListener('input', () => {
       state.keyword = els.search.value;

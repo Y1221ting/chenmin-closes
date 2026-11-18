@@ -6,6 +6,11 @@
   box-sizing: border-box;
 }
 
+/* hidden 属性优先于组件自身的 display 规则 */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

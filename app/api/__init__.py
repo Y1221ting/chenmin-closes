@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..config import APP_NAME, APP_VERSION
 from ..router import Request, Router
-from . import garments, meta, outfits
+from . import garments, media, meta, outfits
 
 
 def _health(_req: Request) -> tuple[int, dict]:
@@ -34,5 +34,8 @@ def build_router() -> Router:
     router.put("/api/outfits/{id}")(outfits.update_outfit)
     router.delete("/api/outfits/{id}")(outfits.delete_outfit)
     router.put("/api/outfits/{id}/items")(outfits.save_items)
+
+    router.post("/api/export")(media.export_png)
+    router.post("/api/exports/open")(media.open_exports)
 
     return router

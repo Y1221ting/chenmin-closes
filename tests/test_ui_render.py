@@ -238,6 +238,33 @@ def main() -> int:
         failures += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] 左侧衣柜列出衣服（实际 {editor_items}）")
 
+        # 7. 搭配库筛选与真实封面
+        for needle, label in [
+            ('id="outfit-scene-filters"', "场景筛选栏"),
+            ('id="outfit-search"', "搭配搜索框"),
+        ]:
+            ok = needle in outfits_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+
+        mini_count = outfits_html.count('class="outfit-mini__item"')
+        ok = mini_count == 1
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 搭配封面渲染 1 件单品（实际 {mini_count}）")
+
+        ok = "导出图片" in editor_html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 编辑器有导出按钮")
+
+        # 8. 导出接口
+        status, export_resp = call(
+            "POST", base + "/api/export?name=UI%E6%90%AD%E9%85%8D",
+            make_png(1200, 1600), "image/png",
+        )
+        ok = status == 200 and export_resp.get("data", {}).get("size", 0) > 0
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 导出 PNG 成功")
+
         html = detail_html
         ok = "本地服务连接失败" not in html and "启动失败" not in html
         failures += 0 if ok else 1

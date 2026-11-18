@@ -7,6 +7,7 @@
       const meta = await App.api.get('/api/meta');
       document.getElementById('app-version').textContent = `v${meta.app.version}`;
       App.nav.init();
+      App.shortcuts.init();
       App.rotateView.init();
       App.outfitWornView.init();
       App.garmentForm.init(meta);

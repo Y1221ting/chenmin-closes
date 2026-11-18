@@ -238,8 +238,8 @@
 
     const confirmed = await App.ui.confirm({
       title: `删除「${garment.name}」？`,
-      message: '这件衣服的三张角度图也会一起删除，无法恢复。',
-      confirmText: '删除',
+      message: '这件衣服会移入回收站，图片不会立刻删除，可以随时恢复。',
+      confirmText: '移入回收站',
     });
     if (!confirmed) return;
 

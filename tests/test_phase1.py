@@ -174,12 +174,16 @@ def main() -> int:
         )
         check(status == 400 and "类别" in payload.get("error", ""), "拒绝非法类别")
 
-        # 10. 删除
+        # 10. 删除（软删除进回收站）
         status, payload = call("DELETE", f"{base}/api/garments/{garment_id}")
-        check(status == 200 and payload.get("ok"), "删除衣服成功")
-        check(not folder.exists(), "图片目录已删除")
+        check(status == 200 and payload.get("ok"), "删除衣服成功（移入回收站）")
+        check(folder.exists(), "软删除后图片仍然保留")
         status, payload = call("GET", f"{base}/api/garments")
         check(len(payload.get("data", [])) == 0, "删除后列表为空")
+
+        status, payload = call("DELETE", f"{base}/api/trash/garments/{garment_id}")
+        check(status == 200, "彻底删除衣服")
+        check(not folder.exists(), "彻底删除后图片目录已清理")
 
     finally:
         httpd.shutdown()

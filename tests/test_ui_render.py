@@ -317,6 +317,18 @@ def main() -> int:
         failures += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] 编辑器有上身展示按钮")
 
+        # 10. 设置与回收站
+        settings_html = dump_dom(browser, base + "/#settings", profile)
+        for text, label in [
+            ("数据安全", "数据安全区块"),
+            ("回收站", "回收站区块"),
+            ("立即备份", "备份按钮"),
+            ("回收站里没有衣服", "空回收站提示"),
+        ]:
+            ok = text in settings_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
+
         # 8. 导出接口
         status, export_resp = call(
             "POST", base + "/api/export?name=UI%E6%90%AD%E9%85%8D",

@@ -161,11 +161,15 @@ def main() -> int:
         )
         check(status == 400, "拒绝未知角度")
 
-        # 6. 删除搭配清理图片目录
+        # 6. 删除搭配（软删除进回收站）
         folder = OUTFITS_DIR / str(outfit_id)
         status, _ = call("DELETE", f"{base}/api/outfits/{outfit_id}")
-        check(status == 200, "删除搭配")
-        check(not folder.exists(), "删除搭配后图片目录已清理")
+        check(status == 200, "删除搭配（移入回收站）")
+        check(folder.exists(), "软删除后搭配图片仍然保留")
+
+        status, _ = call("DELETE", f"{base}/api/trash/outfits/{outfit_id}")
+        check(status == 200, "彻底删除搭配")
+        check(not folder.exists(), "彻底删除后图片目录已清理")
 
     finally:
         httpd.shutdown()

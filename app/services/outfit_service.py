@@ -66,7 +66,7 @@ def _attach_images(conn: sqlite3.Connection, outfits: list[dict]) -> None:
 def list_outfits(filters: dict | None = None) -> list[dict]:
     """搭配列表，带画布布局（用于封面预览）、件数和类别。"""
     filters = filters or {}
-    sql = "SELECT * FROM outfits WHERE 1 = 1"
+    sql = "SELECT * FROM outfits WHERE deleted_at IS NULL"
     args: list[object] = []
 
     scene = (filters.get("scene") or "").strip()
@@ -98,6 +98,7 @@ def list_outfits(filters: dict | None = None) -> list[dict]:
             f"LEFT JOIN garment_images gi "
             f"  ON gi.garment_id = g.id AND gi.angle = 'front' "
             f"WHERE oi.outfit_id IN ({placeholders}) AND oi.view = 'flat' "
+            f"  AND g.deleted_at IS NULL "
             f"ORDER BY oi.outfit_id, oi.z_index, oi.id",
             ids,
         ).fetchall()
@@ -145,7 +146,10 @@ def get_outfit(outfit_id: int) -> dict:
     """搭配详情，含平铺与上身两种视图的单品。"""
     conn = get_conn()
     try:
-        row = conn.execute("SELECT * FROM outfits WHERE id = ?", (outfit_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM outfits WHERE id = ? AND deleted_at IS NULL",
+            (outfit_id,),
+        ).fetchone()
         if row is None:
             raise NotFoundError("搭配不存在或已被删除")
         outfit = row_to_dict(row)
@@ -157,7 +161,7 @@ def get_outfit(outfit_id: int) -> dict:
             "JOIN garments g ON g.id = oi.garment_id "
             "LEFT JOIN garment_images gi "
             "  ON gi.garment_id = g.id AND gi.angle = 'front' "
-            "WHERE oi.outfit_id = ? "
+            "WHERE oi.outfit_id = ? AND g.deleted_at IS NULL "
             "ORDER BY oi.view, oi.z_index, oi.id",
             (outfit_id,),
         ).fetchall()
@@ -221,7 +225,7 @@ def update_outfit(outfit_id: int, data: dict) -> dict:
         with conn:
             cursor = conn.execute(
                 "UPDATE outfits SET name = ?, scenes = ?, notes = ?, updated_at = ? "
-                "WHERE id = ?",
+                "WHERE id = ? AND deleted_at IS NULL",
                 (
                     meta["name"],
                     dump_list(meta["scenes"]),
@@ -242,14 +246,18 @@ def update_outfit(outfit_id: int, data: dict) -> dict:
 
 
 def delete_outfit(outfit_id: int) -> None:
-    """删除搭配（画布条目由外键级联删除）。"""
+    """把搭配移入回收站（软删除，不删除图片和画布）。"""
     conn = get_conn()
     try:
         with conn:
-            cursor = conn.execute("DELETE FROM outfits WHERE id = ?", (outfit_id,))
+            cursor = conn.execute(
+                "UPDATE outfits SET deleted_at = ?, updated_at = ? "
+                "WHERE id = ? AND deleted_at IS NULL",
+                (now_str(), now_str(), outfit_id),
+            )
             deleted = cursor.rowcount
     except sqlite3.Error as exc:
-        logger.exception("删除搭配失败 id=%s", outfit_id)
+        logger.exception("移入回收站失败 id=%s", outfit_id)
         raise ServiceError("删除失败，请重试") from exc
     finally:
         conn.close()
@@ -257,8 +265,112 @@ def delete_outfit(outfit_id: int) -> None:
     if not deleted:
         raise NotFoundError("搭配不存在或已被删除")
 
+    logger.info("搭配已移入回收站 id=%s", outfit_id)
+
+
+def list_trash_outfits() -> list[dict]:
+    """回收站里的搭配。"""
+    conn = get_conn()
+    try:
+        outfits = rows_to_dicts(
+            conn.execute(
+                "SELECT * FROM outfits WHERE deleted_at IS NOT NULL "
+                "ORDER BY deleted_at DESC, id DESC"
+            ).fetchall()
+        )
+        if not outfits:
+            return []
+
+        ids = [item["id"] for item in outfits]
+        placeholders = ",".join("?" for _ in ids)
+        rows = conn.execute(
+            f"SELECT oi.outfit_id, oi.garment_id, oi.clip_top, oi.clip_bottom, "
+            f"       g.category, gi.path AS front_path "
+            f"FROM outfit_items oi "
+            f"JOIN garments g ON g.id = oi.garment_id "
+            f"LEFT JOIN garment_images gi "
+            f"  ON gi.garment_id = g.id AND gi.angle = 'front' "
+            f"WHERE oi.outfit_id IN ({placeholders}) AND oi.view = 'flat' "
+            f"ORDER BY oi.outfit_id, oi.z_index, oi.id",
+            ids,
+        ).fetchall()
+
+        grouped: dict[int, list[dict]] = {}
+        for row in rows:
+            grouped.setdefault(row["outfit_id"], []).append(
+                {
+                    "garment_id": row["garment_id"],
+                    "category": row["category"],
+                    "image": row["front_path"]
+                    or f"garments/{row['garment_id']}/thumb.webp",
+                }
+            )
+
+        for outfit in outfits:
+            items = grouped.get(outfit["id"], [])
+            outfit["items"] = items
+            outfit["item_count"] = len(items)
+            outfit["categories"] = sorted({item["category"] for item in items})
+
+        _attach_images(conn, outfits)
+        for outfit in outfits:
+            items = outfit["items"]
+            outfit["cover"] = outfit["worn_cover"] or (
+                f"garments/{items[0]['garment_id']}/thumb.webp" if items else None
+            )
+        return outfits
+    except sqlite3.Error as exc:
+        logger.exception("读取回收站搭配失败")
+        raise ServiceError("读取回收站失败，请重试") from exc
+    finally:
+        conn.close()
+
+
+def restore_outfit(outfit_id: int) -> dict:
+    """从回收站恢复搭配。"""
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "UPDATE outfits SET deleted_at = NULL, updated_at = ? "
+                "WHERE id = ? AND deleted_at IS NOT NULL",
+                (now_str(), outfit_id),
+            )
+            restored = cursor.rowcount
+    except sqlite3.Error as exc:
+        logger.exception("恢复搭配失败 id=%s", outfit_id)
+        raise ServiceError("恢复失败，请重试") from exc
+    finally:
+        conn.close()
+
+    if not restored:
+        raise NotFoundError("回收站里没有这套搭配")
+
+    logger.info("已恢复搭配 id=%s", outfit_id)
+    return get_outfit(outfit_id)
+
+
+def purge_outfit(outfit_id: int) -> None:
+    """彻底删除回收站里的搭配（含上身图）。"""
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "DELETE FROM outfits WHERE id = ? AND deleted_at IS NOT NULL",
+                (outfit_id,),
+            )
+            deleted = cursor.rowcount
+    except sqlite3.Error as exc:
+        logger.exception("彻底删除搭配失败 id=%s", outfit_id)
+        raise ServiceError("彻底删除失败，请重试") from exc
+    finally:
+        conn.close()
+
+    if not deleted:
+        raise NotFoundError("回收站里没有这套搭配")
+
     image_service.delete_outfit_dir(outfit_id)
-    logger.info("已删除搭配 id=%s", outfit_id)
+    logger.info("已彻底删除搭配 id=%s", outfit_id)
 
 
 def save_image(outfit_id: int, angle: str, raw: bytes) -> dict:
@@ -397,13 +509,17 @@ def save_items(outfit_id: int, view: str, raw_items: list) -> dict:
     try:
         with conn:
             exists = conn.execute(
-                "SELECT 1 FROM outfits WHERE id = ?", (outfit_id,)
+                "SELECT 1 FROM outfits WHERE id = ? AND deleted_at IS NULL",
+                (outfit_id,),
             ).fetchone()
             if exists is None:
                 raise NotFoundError("搭配不存在或已被删除")
 
+            # 保留已移入回收站的衣服的布局，恢复衣服后可以还原
             conn.execute(
-                "DELETE FROM outfit_items WHERE outfit_id = ? AND view = ?",
+                "DELETE FROM outfit_items WHERE outfit_id = ? AND view = ? "
+                "AND garment_id NOT IN "
+                "(SELECT id FROM garments WHERE deleted_at IS NOT NULL)",
                 (outfit_id, view),
             )
             conn.executemany(

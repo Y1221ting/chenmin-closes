@@ -16,6 +16,7 @@
       App.outfits.init(meta);
       App.outfitEditor.init(meta);
       App.outfitWorn.init(meta);
+      App.settings.init(meta);
       App.nav.handleRoute();
     } catch (err) {
       App.ui.toast(`启动失败：${err.message}`, 'error');

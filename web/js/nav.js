@@ -7,6 +7,7 @@
     'page-outfits',
     'page-outfit',
     'page-worn',
+    'page-settings',
     'page-garment',
   ];
   let ready = false;
@@ -24,6 +25,9 @@
         'is-active',
         pageId === 'page-outfits' || pageId === 'page-outfit' || pageId === 'page-worn'
       );
+    document
+      .getElementById('nav-settings')
+      .classList.toggle('is-active', pageId === 'page-settings');
   }
 
   function navigate(hash) {
@@ -40,6 +44,10 @@
 
   function toOutfits() {
     navigate('#outfits');
+  }
+
+  function toSettings() {
+    navigate('#settings');
   }
 
   function toOutfit(id) {
@@ -79,12 +87,18 @@
       App.outfits.load();
       return;
     }
+    if (hash === '#settings') {
+      showPage('page-settings');
+      App.settings.load();
+      return;
+    }
     showPage('page-wardrobe');
   }
 
   function init() {
     document.getElementById('nav-wardrobe').addEventListener('click', toWardrobe);
     document.getElementById('nav-outfits').addEventListener('click', toOutfits);
+    document.getElementById('nav-settings').addEventListener('click', toSettings);
     window.addEventListener('hashchange', handleRoute);
     ready = true;
   }
@@ -95,6 +109,7 @@
     toOutfits,
     toOutfit,
     toOutfitWorn,
+    toSettings,
     toGarment,
     handleRoute,
   };

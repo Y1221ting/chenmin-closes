@@ -167,8 +167,8 @@
 
     const confirmed = await App.ui.confirm({
       title: `删除搭配「${outfit.name}」？`,
-      message: '画布布局和已上传的上身图会一起删除，无法恢复。',
-      confirmText: '删除',
+      message: '这套搭配会移入回收站，布局和上身图都会保留，可以随时恢复。',
+      confirmText: '移入回收站',
     });
     if (!confirmed) return;
 

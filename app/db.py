@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS garments (
     wear_count    INTEGER NOT NULL DEFAULT 0,
     last_worn     TEXT,
     created_at    TEXT    NOT NULL,
-    updated_at    TEXT
+    updated_at    TEXT,
+    deleted_at    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS garment_images (
@@ -55,7 +56,8 @@ CREATE TABLE IF NOT EXISTS outfits (
     scenes     TEXT,
     notes      TEXT,
     created_at TEXT    NOT NULL,
-    updated_at TEXT
+    updated_at TEXT,
+    deleted_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS outfit_items (
@@ -145,6 +147,23 @@ def _ensure_image_columns(conn: sqlite3.Connection) -> None:
             logger.info("数据库迁移：garment_images 新增字段 %s", name)
 
 
+def _ensure_deleted_columns(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上软删除字段，并建立索引。"""
+    for table in ("garments", "outfits"):
+        columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if "deleted_at" not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN deleted_at TEXT")
+            logger.info("数据库迁移：%s 新增字段 deleted_at", table)
+
+    # 必须在字段补齐之后再建索引
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_garments_deleted ON garments(deleted_at)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_outfits_deleted ON outfits(deleted_at)"
+    )
+
+
 def _ensure_item_columns(conn: sqlite3.Connection) -> None:
     """为老版本数据库补上画布单品的遮挡字段。"""
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(outfit_items)")}
@@ -164,6 +183,7 @@ def init_db() -> None:
     try:
         with conn:
             conn.executescript(SCHEMA_SQL)
+            _ensure_deleted_columns(conn)
             _ensure_image_columns(conn)
             _ensure_item_columns(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]

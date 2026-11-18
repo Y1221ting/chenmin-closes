@@ -21,6 +21,7 @@ from app.config import (
 )
 from app.db import init_db
 from app.server import start_server
+from app.services import backup_service
 from app.utils import clear_tmp, ensure_dirs, logger, setup_logging
 
 
@@ -29,6 +30,7 @@ def main() -> int:
     setup_logging()
     ensure_dirs()
     clear_tmp()
+    backup_service.backup_database()
     init_db()
 
     logger.info("========== %s v%s 启动 ==========", APP_NAME, APP_VERSION)

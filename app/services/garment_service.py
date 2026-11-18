@@ -84,7 +84,7 @@ def _attach_images(conn: sqlite3.Connection, garments: list[dict]) -> None:
 
 def list_garments(filters: dict) -> list[dict]:
     """按筛选条件查询衣服列表。"""
-    sql = "SELECT * FROM garments WHERE 1 = 1"
+    sql = "SELECT * FROM garments WHERE deleted_at IS NULL"
     args: list[object] = []
 
     category = (filters.get("category") or "").strip()
@@ -130,7 +130,10 @@ def get_garment(garment_id: int) -> dict:
     """读取单件衣服，包含三张角度图信息。"""
     conn = get_conn()
     try:
-        row = conn.execute("SELECT * FROM garments WHERE id = ?", (garment_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM garments WHERE id = ? AND deleted_at IS NULL",
+            (garment_id,),
+        ).fetchone()
         if row is None:
             raise NotFoundError("衣服不存在或已被删除")
         garment = row_to_dict(row)
@@ -194,7 +197,7 @@ def update_garment(garment_id: int, data: dict) -> dict:
             cursor = conn.execute(
                 "UPDATE garments SET name = ?, category = ?, color = ?, seasons = ?, "
                 "occasions = ?, brand = ?, price = ?, purchase_date = ?, notes = ?, "
-                "updated_at = ? WHERE id = ?",
+                "updated_at = ? WHERE id = ? AND deleted_at IS NULL",
                 (
                     meta["name"],
                     meta["category"],
@@ -303,14 +306,18 @@ def adjust_image(garment_id: int, angle: str, data: dict) -> dict:
 
 
 def delete_garment(garment_id: int) -> None:
-    """删除衣服：先删数据库记录，再删图片目录。"""
+    """把衣服移入回收站（软删除，不删除图片）。"""
     conn = get_conn()
     try:
         with conn:
-            cursor = conn.execute("DELETE FROM garments WHERE id = ?", (garment_id,))
+            cursor = conn.execute(
+                "UPDATE garments SET deleted_at = ?, updated_at = ? "
+                "WHERE id = ? AND deleted_at IS NULL",
+                (now_str(), now_str(), garment_id),
+            )
             deleted = cursor.rowcount
     except sqlite3.Error as exc:
-        logger.exception("删除衣服失败 id=%s", garment_id)
+        logger.exception("移入回收站失败 id=%s", garment_id)
         raise ServiceError("删除失败，请重试") from exc
     finally:
         conn.close()
@@ -318,5 +325,70 @@ def delete_garment(garment_id: int) -> None:
     if not deleted:
         raise NotFoundError("衣服不存在或已被删除")
 
+    logger.info("衣服已移入回收站 id=%s", garment_id)
+
+
+def list_trash_garments() -> list[dict]:
+    """回收站里的衣服。"""
+    conn = get_conn()
+    try:
+        garments = rows_to_dicts(
+            conn.execute(
+                "SELECT * FROM garments WHERE deleted_at IS NOT NULL "
+                "ORDER BY deleted_at DESC, id DESC"
+            ).fetchall()
+        )
+        _attach_images(conn, garments)
+        return garments
+    except sqlite3.Error as exc:
+        logger.exception("读取回收站衣服失败")
+        raise ServiceError("读取回收站失败，请重试") from exc
+    finally:
+        conn.close()
+
+
+def restore_garment(garment_id: int) -> dict:
+    """从回收站恢复衣服。"""
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "UPDATE garments SET deleted_at = NULL, updated_at = ? "
+                "WHERE id = ? AND deleted_at IS NOT NULL",
+                (now_str(), garment_id),
+            )
+            restored = cursor.rowcount
+    except sqlite3.Error as exc:
+        logger.exception("恢复衣服失败 id=%s", garment_id)
+        raise ServiceError("恢复失败，请重试") from exc
+    finally:
+        conn.close()
+
+    if not restored:
+        raise NotFoundError("回收站里没有这件衣服")
+
+    logger.info("已恢复衣服 id=%s", garment_id)
+    return get_garment(garment_id)
+
+
+def purge_garment(garment_id: int) -> None:
+    """彻底删除回收站里的衣服（含图片文件）。"""
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "DELETE FROM garments WHERE id = ? AND deleted_at IS NOT NULL",
+                (garment_id,),
+            )
+            deleted = cursor.rowcount
+    except sqlite3.Error as exc:
+        logger.exception("彻底删除衣服失败 id=%s", garment_id)
+        raise ServiceError("彻底删除失败，请重试") from exc
+    finally:
+        conn.close()
+
+    if not deleted:
+        raise NotFoundError("回收站里没有这件衣服")
+
     image_service.delete_garment_dir(garment_id)
-    logger.info("已删除衣服 id=%s", garment_id)
+    logger.info("已彻底删除衣服 id=%s", garment_id)

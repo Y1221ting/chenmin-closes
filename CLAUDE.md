@@ -20,6 +20,7 @@ Windows 本地个人衣柜与搭配桌面软件。用户导入自己衣服的
 | [docs/02-技术方案.md](docs/02-技术方案.md) | 架构、目录结构、建表 SQL、图片管线、旋转与画布算法 |
 | [docs/03-开发规范.md](docs/03-开发规范.md) | 代码风格、命名、错误处理、文件模板 |
 | [docs/04-执行步骤.md](docs/04-执行步骤.md) | 阶段划分、每阶段任务与验收标准 |
+| [docs/05-版本管理.md](docs/05-版本管理.md) | Git 工作流、提交规范、分支与标签 |
 
 ## 开发日志
 
@@ -35,6 +36,9 @@ Windows 本地个人衣柜与搭配桌面软件。用户导入自己衣服的
 1. **一次只做一个功能点**，做完验证再继续下一个
 2. 每个功能点完成后更新当日开发日志
 3. 遵循 `docs/04-执行步骤.md` 中的阶段划分
+4. **每个功能点完成后必须提交并推送到远程仓库**：
+   `git add <相关文件>` → `git commit` → `git push`
+   远程地址与提交规范见 `docs/05-版本管理.md`
 
 ### 代码规范
 - 遵循 PEP 8，行宽 100
@@ -78,6 +82,10 @@ py -3.11 -m venv .venv
 .venv/Scripts/pyinstaller.exe --noconfirm --windowed --name=个人衣柜 ^
   --add-data "web;web" --collect-all webview main.py
 ```
+
+## 远程仓库
+
+`https://github.com/Y1221ting/yt-closes.git`（main 分支）
 
 ## 用户偏好
 

@@ -1,6 +1,9 @@
-/* 衣柜页：分类、颜色、季节、场合筛选 + 名称搜索 + 缩略图网格。 */
+/* 衣柜页：分类挂杆、悬停展开正面、筛选与搜索。 */
 (function (App) {
   'use strict';
+
+  const CLOTH_CATEGORIES = ['top', 'outer', 'bottom', 'dress'];
+  const SHELF_CATEGORIES = ['shoes', 'bag', 'accessory'];
 
   const state = {
     meta: null,
@@ -16,7 +19,7 @@
   const els = {};
 
   function cache() {
-    els.grid = document.getElementById('wardrobe-grid');
+    els.rack = document.getElementById('wardrobe-rack');
     els.empty = document.getElementById('empty-state');
     els.filterEmpty = document.getElementById('filter-empty');
     els.count = document.getElementById('wardrobe-count');
@@ -37,7 +40,9 @@
   }
 
   function hasFilters() {
-    return Boolean(state.category || state.color || state.season || state.scene || state.keyword);
+    return Boolean(
+      state.category || state.color || state.season || state.scene || state.keyword
+    );
   }
 
   // ---------------------------------------------------------------- 筛选栏
@@ -77,9 +82,7 @@
       select.appendChild(option);
     });
 
-    if (current) {
-      select.value = current;
-    }
+    if (current) select.value = current;
   }
 
   function updateClearButton() {
@@ -101,53 +104,178 @@
     load();
   }
 
-  // ---------------------------------------------------------------- 渲染
+  // ---------------------------------------------------------------- 挂件
 
-  function cardElement(item, index, categoryLabels, colorLabels) {
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.dataset.id = item.id;
-    card.style.animationDelay = `${Math.min(index, 12) * 24}ms`;
+  function imageVersion(item) {
+    return item.updated_at ? `?v=${encodeURIComponent(item.updated_at)}` : '';
+  }
 
-    const version = item.updated_at
-      ? `?v=${encodeURIComponent(item.updated_at)}`
-      : '';
-    const media = item.thumb
-      ? `<img src="/data/${App.ui.escapeHtml(item.thumb)}${version}" alt="${App.ui.escapeHtml(item.name)}" loading="lazy">`
-      : `<span class="card__placeholder">暂无图片<br>${App.ui.escapeHtml(categoryLabels[item.category] || '')}</span>`;
+  function escape(value) {
+    return App.ui.escapeHtml(value);
+  }
 
-    const meta = [
-      categoryLabels[item.category] || '',
-      item.color ? colorLabels[item.color] || '' : '',
-    ].filter(Boolean).join(' · ');
+  function openGarment(item) {
+    App.nav.toGarment(item.id);
+  }
 
-    card.innerHTML = `
-      <button class="card__delete" type="button" title="删除">✕</button>
-      <div class="card__media">${media}</div>
-      <div class="card__body">
-        <p class="card__name">${App.ui.escapeHtml(item.name)}</p>
-        <p class="card__meta">${App.ui.escapeHtml(meta)}</p>
+  function rackItem(item, index) {
+    const el = document.createElement('div');
+    el.className = 'rack-item';
+    el.dataset.id = item.id;
+    el.style.animationDelay = `${Math.min(index, 10) * 30}ms`;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', item.name);
+
+    const suffix = imageVersion(item);
+    const images = item.images || {};
+    const sidePath = images.side
+      ? images.side.path
+      : images.front
+        ? images.front.path
+        : null;
+    const frontPath = item.thumb || (images.front ? images.front.path : null);
+    const sideSrc = sidePath ? `/data/${escape(sidePath)}${suffix}` : '';
+    const frontSrc = frontPath ? `/data/${escape(frontPath)}${suffix}` : '';
+
+    el.innerHTML = `
+      <span class="rack-item__hanger" aria-hidden="true">
+        <svg viewBox="0 0 64 48">
+          <path d="M32 20 V13 a6 6 0 1 1 7 -5"></path>
+          <path d="M32 20 L7 42 H57 Z"></path>
+        </svg>
+      </span>
+      <span class="rack-item__garment">
+        ${sideSrc ? `<img class="rack-item__side" src="${sideSrc}" alt="" loading="lazy">` : ''}
+        ${frontSrc ? `<img class="rack-item__front" src="${frontSrc}" alt="" loading="lazy">` : ''}
+      </span>
+      <span class="rack-item__name">${escape(item.name)}</span>
+      <button class="rack-item__delete" type="button" title="删除">✕</button>
+    `;
+
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('.rack-item__delete')) return;
+      openGarment(item);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openGarment(item);
+      }
+    });
+    el.querySelector('.rack-item__delete').addEventListener('click', (event) => {
+      handleDelete(event, item);
+    });
+
+    return el;
+  }
+
+  function railSection(label, items, category) {
+    const section = document.createElement('section');
+    section.className = 'rack-section';
+    section.dataset.category = category;
+    section.innerHTML = `
+      <div class="rack-section__head">
+        <span class="rack-section__label">${escape(label)}</span>
+        <span class="rack-section__count">${items.length}</span>
+      </div>
+      <div class="rack-section__body">
+        <button class="rack-nav" type="button" data-dir="-1" aria-label="向左滚动">‹</button>
+        <div class="rack-scroll">
+          <div class="rack-track">
+            <div class="rack-bar"></div>
+            <div class="rack-items"></div>
+          </div>
+        </div>
+        <button class="rack-nav" type="button" data-dir="1" aria-label="向右滚动">›</button>
       </div>
     `;
 
-    card.addEventListener('click', () => App.nav.toGarment(item.id));
-    card.querySelector('.card__delete').addEventListener('click', (event) => {
-      handleDelete(event, item);
+    const trackItems = section.querySelector('.rack-items');
+    items.forEach((item, index) => trackItems.appendChild(rackItem(item, index)));
+
+    const scroll = section.querySelector('.rack-scroll');
+    section.querySelectorAll('.rack-nav').forEach((button) => {
+      button.addEventListener('click', () => {
+        const distance = Math.max(320, scroll.clientWidth * 0.8);
+        scroll.scrollBy({
+          left: Number(button.dataset.dir) * distance,
+          behavior: 'smooth',
+        });
+      });
     });
-    return card;
+
+    return section;
   }
 
+  function shelfItem(item) {
+    const el = document.createElement('div');
+    el.className = 'shelf-item';
+    el.dataset.id = item.id;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', item.name);
+
+    const suffix = imageVersion(item);
+    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
+
+    el.innerHTML = `
+      ${src ? `<img src="${src}" alt="" loading="lazy">` : '<span class="shelf-item__empty">无图</span>'}
+      <span class="shelf-item__name">${escape(item.name)}</span>
+      <button class="shelf-item__delete" type="button" title="删除">✕</button>
+    `;
+
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('.shelf-item__delete')) return;
+      openGarment(item);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openGarment(item);
+      }
+    });
+    el.querySelector('.shelf-item__delete').addEventListener('click', (event) => {
+      handleDelete(event, item);
+    });
+
+    return el;
+  }
+
+  function shelfSection(items) {
+    const section = document.createElement('section');
+    section.className = 'shelf-section';
+    section.innerHTML = `
+      <div class="rack-section__head">
+        <span class="rack-section__label">鞋包配饰</span>
+        <span class="rack-section__count">${items.length}</span>
+      </div>
+      <div class="shelf">
+        <div class="shelf__items"></div>
+        <div class="shelf__line"></div>
+      </div>
+    `;
+
+    const container = section.querySelector('.shelf__items');
+    items.forEach((item) => container.appendChild(shelfItem(item)));
+    return section;
+  }
+
+  // ---------------------------------------------------------------- 渲染
+
   function render() {
-    const categoryLabels = labelsOf('categories');
-    const colorLabels = labelsOf('colors');
     const items = state.items;
     const filtered = hasFilters();
 
-    els.grid.innerHTML = '';
-    els.grid.hidden = items.length === 0;
+    els.rack.innerHTML = '';
+    els.rack.hidden = items.length === 0;
 
-    if (items.length > 0) {
-      els.count.textContent = filtered ? `筛选出 ${items.length} 件` : `${items.length} 件衣服`;
+    if (items.length) {
+      els.count.textContent = filtered
+        ? `筛选出 ${items.length} 件`
+        : `${items.length} 件衣服`;
     } else {
       els.count.textContent = filtered ? '没有符合条件的衣服' : '还没有衣服';
     }
@@ -155,9 +283,25 @@
     els.empty.hidden = items.length > 0 || filtered || state.loading;
     els.filterEmpty.hidden = items.length > 0 || !filtered || state.loading;
 
-    items.forEach((item, index) => {
-      els.grid.appendChild(cardElement(item, index, categoryLabels, colorLabels));
+    const grouped = {};
+    items.forEach((item) => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
     });
+
+    (state.meta.categories || []).forEach((cat) => {
+      if (!CLOTH_CATEGORIES.includes(cat.value)) return;
+      const list = grouped[cat.value];
+      if (!list || !list.length) return;
+      els.rack.appendChild(railSection(cat.label, list, cat.value));
+    });
+
+    const shelfItems = SHELF_CATEGORIES.flatMap(
+      (category) => grouped[category] || []
+    );
+    if (shelfItems.length) {
+      els.rack.appendChild(shelfSection(shelfItems));
+    }
   }
 
   async function handleDelete(event, item) {

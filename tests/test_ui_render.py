@@ -133,6 +133,22 @@ def main() -> int:
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
 
+        # 2.1 挂杆视图
+        rack_count = html.count('class="rack-item"')
+        ok = rack_count == 1
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 挂杆渲染 1 件衣服（实际 {rack_count}）")
+
+        for needle, label in [
+            ('class="rack-bar"', "挂杆横杆"),
+            ('class="rack-item__hanger"', "衣架"),
+            ('class="rack-item__side"', "侧面挂图"),
+            ('class="rack-item__front"', "正面展开图"),
+        ]:
+            ok = needle in html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+
         # 3. 筛选控件
         for needle, label in [
             ('id="filter-color"', "颜色筛选下拉框"),

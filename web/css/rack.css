@@ -1,0 +1,345 @@
+/* 衣柜挂杆视图：分类杆、衣架、侧面挂件、鞋包隔板。 */
+
+.rack {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4) var(--space-4);
+}
+
+.rack[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- 分区 */
+
+.rack-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rack-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.rack-section__label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.rack-section__count {
+  font-size: var(--font-size-xs);
+  color: var(--text-faint);
+}
+
+.rack-section__body {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.rack-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.rack-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.rack-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.rack-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rack-track {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 10px 10px;
+}
+
+/* 挂杆 */
+.rack-bar {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ded8cc 0%, #b6afa1 55%, #a59d8f 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.rack-items {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* ---------------------------------------------------------------- 挂件 */
+
+.rack-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: 300px;
+  cursor: pointer;
+  outline: none;
+}
+
+.rack-item:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.rack-item__hanger {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 56px;
+  height: 42px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rack-item__hanger svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #b9b3a8;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rack-item__garment {
+  position: absolute;
+  top: 42px;
+  left: 50%;
+  width: 140px;
+  height: 210px;
+  transform: translateX(-50%);
+  perspective: 900px;
+}
+
+.rack-item__garment img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: top center;
+  transition: opacity 260ms var(--ease), transform 260ms var(--ease);
+  will-change: transform, opacity;
+}
+
+.rack-item__side {
+  opacity: 1;
+  transform: rotateY(0deg);
+}
+
+.rack-item__front {
+  opacity: 0;
+  transform: rotateY(-75deg);
+}
+
+.rack-item:hover .rack-item__side,
+.rack-item:focus-visible .rack-item__side {
+  opacity: 0;
+  transform: rotateY(75deg);
+}
+
+.rack-item:hover .rack-item__front,
+.rack-item:focus-visible .rack-item__front {
+  opacity: 1;
+  transform: rotateY(0deg);
+}
+
+.rack-item__name {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rack-item__delete,
+.shelf-item__delete {
+  position: absolute;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: var(--shadow-card);
+  transition: opacity var(--duration) var(--ease),
+              color var(--duration) var(--ease);
+}
+
+.rack-item__delete {
+  top: 36px;
+  right: 6px;
+}
+
+.rack-item:hover .rack-item__delete,
+.rack-item:focus-within .rack-item__delete,
+.shelf-item:hover .shelf-item__delete,
+.shelf-item:focus-within .shelf-item__delete {
+  opacity: 1;
+}
+
+.rack-item__delete:hover,
+.shelf-item__delete:hover {
+  color: var(--danger);
+}
+
+/* 左右滚动按钮 */
+.rack-nav {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 28px;
+  height: 48px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--duration) var(--ease),
+              color var(--duration) var(--ease);
+}
+
+.rack-nav:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------- 鞋包隔板 */
+
+.shelf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shelf {
+  position: relative;
+  padding: 0 10px 18px;
+}
+
+.shelf__items {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.shelf__items::-webkit-scrollbar {
+  height: 6px;
+}
+
+.shelf__items::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.shelf__line {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 8px;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ded8cc, #b6afa1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.shelf-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.shelf-item:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.shelf-item img {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.shelf-item__name {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelf-item__delete {
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.shelf-item__empty {
+  display: block;
+  height: 150px;
+  line-height: 150px;
+  color: var(--text-faint);
+  font-size: var(--font-size-xs);
+  background: var(--surface);
+  border-radius: 8px;
+}

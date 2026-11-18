@@ -256,6 +256,18 @@ def main() -> int:
         failures += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] 编辑器有导出按钮")
 
+        for needle, label in [
+            ('id="item-clip-top"', "上边缘裁切滑块"),
+            ('id="item-clip-bottom"', "下边缘裁切滑块"),
+        ]:
+            ok = needle in editor_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+
+        ok = "clip-path:" in outfits_html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 搭配封面应用了裁切")
+
         # 8. 导出接口
         status, export_resp = call(
             "POST", base + "/api/export?name=UI%E6%90%AD%E9%85%8D",

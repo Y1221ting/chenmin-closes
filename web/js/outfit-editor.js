@@ -56,6 +56,10 @@
     els.itemScaleValue = document.getElementById('item-scale-value');
     els.itemRotation = document.getElementById('item-rotation');
     els.itemRotationValue = document.getElementById('item-rotation-value');
+    els.itemClipTop = document.getElementById('item-clip-top');
+    els.itemClipTopValue = document.getElementById('item-clip-top-value');
+    els.itemClipBottom = document.getElementById('item-clip-bottom');
+    els.itemClipBottomValue = document.getElementById('item-clip-bottom-value');
     els.deleteBtn = document.getElementById('btn-outfit-delete');
     els.exportBtn = document.getElementById('btn-export');
   }
@@ -159,6 +163,8 @@
       rotation: 0,
       z_index: state.items.length,
       locked: 0,
+      clip_top: 0,
+      clip_bottom: 1,
       garment: {
         name: garment.name,
         category,
@@ -186,6 +192,12 @@
     state.canvasH = height;
   }
 
+  function clipStyle(item) {
+    const top = typeof item.clip_top === 'number' ? item.clip_top : 0;
+    const bottom = typeof item.clip_bottom === 'number' ? item.clip_bottom : 1;
+    return `inset(${(top * 100).toFixed(2)}% 0 ${((1 - bottom) * 100).toFixed(2)}% 0)`;
+  }
+
   function renderCanvas() {
     els.canvas.innerHTML = '';
 
@@ -204,6 +216,7 @@
       img.src = `/data/${item.garment.image}`;
       img.alt = item.garment.name;
       img.draggable = false;
+      img.style.clipPath = clipStyle(item);
       el.appendChild(img);
 
       bindItemDrag(el, item);
@@ -219,6 +232,8 @@
     el.style.width = `${(BASE_WIDTH[item.garment.category] || 30) * item.scale}%`;
     el.style.zIndex = String(item.z_index);
     el.style.transform = `translate(-50%, -50%) rotate(${item.rotation}deg)`;
+    const img = el.querySelector('img');
+    if (img) img.style.clipPath = clipStyle(item);
   }
 
   function bindItemDrag(el, item) {
@@ -290,6 +305,15 @@
     els.itemScaleValue.textContent = `${Math.round(item.scale * 100)}%`;
     els.itemRotation.value = String(Math.round(item.rotation));
     els.itemRotationValue.textContent = `${Math.round(item.rotation)}°`;
+
+    const clipTop = Math.round((item.clip_top || 0) * 100);
+    const clipBottom = Math.round(
+      (typeof item.clip_bottom === 'number' ? item.clip_bottom : 1) * 100
+    );
+    els.itemClipTop.value = String(clipTop);
+    els.itemClipTopValue.textContent = `${clipTop}%`;
+    els.itemClipBottom.value = String(clipBottom);
+    els.itemClipBottomValue.textContent = `${clipBottom}%`;
   }
 
   function layerMove(mode) {
@@ -358,6 +382,8 @@
         rotation: item.rotation,
         z_index: item.z_index,
         locked: item.locked ? 1 : 0,
+        clip_top: item.clip_top || 0,
+        clip_bottom: typeof item.clip_bottom === 'number' ? item.clip_bottom : 1,
       })),
     };
 
@@ -489,9 +515,23 @@
           const width =
             ((BASE_WIDTH[category] || 30) / 100) * canvas.width * item.scale;
           const height = width * (img.naturalHeight / img.naturalWidth);
+          const clipTop = typeof item.clip_top === 'number' ? item.clip_top : 0;
+          const clipBottom =
+            typeof item.clip_bottom === 'number' ? item.clip_bottom : 1;
+          const clipHeight = Math.max(0, (clipBottom - clipTop) * height);
+          if (clipHeight <= 0) return;
+
           ctx.save();
           ctx.translate(item.x * canvas.width, item.y * canvas.height);
           ctx.rotate((item.rotation * Math.PI) / 180);
+          ctx.beginPath();
+          ctx.rect(
+            -width / 2,
+            -height / 2 + clipTop * height,
+            width,
+            clipHeight
+          );
+          ctx.clip();
           ctx.drawImage(img, -width / 2, -height / 2, width, height);
           ctx.restore();
         });
@@ -553,6 +593,33 @@
       updateItemElement(item);
       scheduleSave();
     });
+
+    function onClipInput() {
+      const item = selectedItem();
+      if (!item) return;
+
+      let clipTop = Number(els.itemClipTop.value);
+      let clipBottom = Number(els.itemClipBottom.value);
+      if (clipBottom < clipTop) {
+        if (document.activeElement === els.itemClipTop) {
+          clipTop = clipBottom;
+        } else {
+          clipBottom = clipTop;
+        }
+      }
+
+      item.clip_top = clipTop / 100;
+      item.clip_bottom = clipBottom / 100;
+      els.itemClipTop.value = String(clipTop);
+      els.itemClipBottom.value = String(clipBottom);
+      els.itemClipTopValue.textContent = `${clipTop}%`;
+      els.itemClipBottomValue.textContent = `${clipBottom}%`;
+      updateItemElement(item);
+      scheduleSave();
+    }
+
+    els.itemClipTop.addEventListener('input', onClipInput);
+    els.itemClipBottom.addEventListener('input', onClipInput);
 
     document
       .getElementById('btn-layer-top')

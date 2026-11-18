@@ -87,10 +87,15 @@
       .sort((a, b) => a.z_index - b.z_index)
       .map((item) => {
         const width = ((BASE_WIDTH[item.category] || 30) * item.scale).toFixed(2);
+        const clipTop = typeof item.clip_top === 'number' ? item.clip_top : 0;
+        const clipBottom =
+          typeof item.clip_bottom === 'number' ? item.clip_bottom : 1;
+        const clip = `inset(${(clipTop * 100).toFixed(2)}% 0 ${((1 - clipBottom) * 100).toFixed(2)}% 0)`;
         return (
           `<img class="outfit-mini__item" src="/data/${App.ui.escapeHtml(item.image)}" alt="" ` +
           `style="left:${(item.x * 100).toFixed(2)}%;top:${(item.y * 100).toFixed(2)}%;` +
           `width:${width}%;z-index:${item.z_index};` +
+          `clip-path:${clip};` +
           `transform:translate(-50%,-50%) rotate(${item.rotation}deg)">`
         );
       })

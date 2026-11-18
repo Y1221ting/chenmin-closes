@@ -109,7 +109,7 @@ def main() -> int:
         # 2. 保存画布布局
         items = [
             {"garment_id": top_id, "x": 0.5, "y": 0.34, "scale": 1.0,
-             "rotation": 0, "z_index": 0},
+             "rotation": 0, "z_index": 0, "clip_top": 0.15, "clip_bottom": 0.85},
             {"garment_id": bottom_id, "x": 0.5, "y": 0.66, "scale": 1.2,
              "rotation": 5, "z_index": 1},
         ]
@@ -120,6 +120,9 @@ def main() -> int:
         check(flat[0]["garment"]["name"] == "白色上衣", "单品带衣服名称")
         check(flat[0]["garment"]["image"].endswith("front.webp"), "单品带正面图路径")
         check(abs(flat[1]["rotation"] - 5) < 1e-6, "旋转角度保存正确")
+        check(abs(flat[0]["clip_top"] - 0.15) < 1e-6, "上边缘裁切保存正确")
+        check(abs(flat[0]["clip_bottom"] - 0.85) < 1e-6, "下边缘裁切保存正确")
+        check(flat[1]["clip_top"] == 0.0 and flat[1]["clip_bottom"] == 1.0, "裁切默认值正确")
 
         # 3. 列表与封面
         status, response = call("GET", f"{base}/api/outfits")
@@ -148,6 +151,19 @@ def main() -> int:
         check(item["scale"] == 5.0, "缩放被钳制到上限")
         check(item["rotation"] == 180.0, "旋转被钳制到上限")
         check(item["z_index"] == 0, "层级被钳制到下限")
+
+        # 上边缘大于下边缘时自动交换，保证裁切区间有效
+        status, response = save_layout(
+            base, outfit_id,
+            [{"garment_id": top_id, "x": 0.5, "y": 0.5, "scale": 1,
+              "rotation": 0, "z_index": 0, "clip_top": 2, "clip_bottom": -1}],
+        )
+        clipped = response["data"]["items"]["flat"][0]
+        check(
+            clipped["clip_top"] <= clipped["clip_bottom"],
+            "裁切区间自动纠正",
+            f"{clipped['clip_top']} / {clipped['clip_bottom']}",
+        )
 
         # 6. 非法衣服
         status, response = save_layout(

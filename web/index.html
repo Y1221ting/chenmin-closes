@@ -157,6 +157,17 @@
                 <input type="range" id="item-rotation" min="-180" max="180" step="1">
                 <em id="item-rotation-value">0°</em>
               </label>
+              <label class="panel__row">
+                <span>上边缘</span>
+                <input type="range" id="item-clip-top" min="0" max="100" step="1" value="0">
+                <em id="item-clip-top-value">0%</em>
+              </label>
+              <label class="panel__row">
+                <span>下边缘</span>
+                <input type="range" id="item-clip-bottom" min="0" max="100" step="1" value="100">
+                <em id="item-clip-bottom-value">100%</em>
+              </label>
+              <p class="panel__hint">拖上/下边缘可以塞衣角、藏下摆</p>
               <div class="panel__buttons">
                 <button class="btn btn--ghost" id="btn-layer-top" type="button">置顶</button>
                 <button class="btn btn--ghost" id="btn-layer-bottom" type="button">置底</button>

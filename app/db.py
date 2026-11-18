@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS outfit_items (
     rotation   REAL    NOT NULL DEFAULT 0,
     z_index    INTEGER NOT NULL DEFAULT 0,
     locked     INTEGER NOT NULL DEFAULT 0,
+    clip_top   REAL    NOT NULL DEFAULT 0,   -- 上边缘裁切（0~1）
+    clip_bottom REAL   NOT NULL DEFAULT 1,   -- 下边缘裁切（0~1）
     FOREIGN KEY (outfit_id) REFERENCES outfits(id) ON DELETE CASCADE,
     FOREIGN KEY (garment_id) REFERENCES garments(id) ON DELETE CASCADE
 );
@@ -128,6 +130,19 @@ def _ensure_image_columns(conn: sqlite3.Connection) -> None:
             logger.info("数据库迁移：garment_images 新增字段 %s", name)
 
 
+def _ensure_item_columns(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上画布单品的遮挡字段。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(outfit_items)")}
+    additions = {
+        "clip_top": "REAL NOT NULL DEFAULT 0",
+        "clip_bottom": "REAL NOT NULL DEFAULT 1",
+    }
+    for name, ddl in additions.items():
+        if name not in columns:
+            conn.execute(f"ALTER TABLE outfit_items ADD COLUMN {name} {ddl}")
+            logger.info("数据库迁移：outfit_items 新增字段 %s", name)
+
+
 def init_db() -> None:
     """建表并写入初始场景标签（幂等）。"""
     conn = get_conn()
@@ -135,6 +150,7 @@ def init_db() -> None:
         with conn:
             conn.executescript(SCHEMA_SQL)
             _ensure_image_columns(conn)
+            _ensure_item_columns(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < SCHEMA_VERSION:
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

@@ -61,7 +61,8 @@ def list_outfits(filters: dict | None = None) -> list[dict]:
         placeholders = ",".join("?" for _ in ids)
         rows = conn.execute(
             f"SELECT oi.outfit_id, oi.garment_id, oi.x, oi.y, oi.scale, "
-            f"       oi.rotation, oi.z_index, g.category, gi.path AS front_path "
+            f"       oi.rotation, oi.z_index, oi.clip_top, oi.clip_bottom, "
+            f"       g.category, gi.path AS front_path "
             f"FROM outfit_items oi "
             f"JOIN garments g ON g.id = oi.garment_id "
             f"LEFT JOIN garment_images gi "
@@ -81,6 +82,8 @@ def list_outfits(filters: dict | None = None) -> list[dict]:
                     "scale": row["scale"],
                     "rotation": row["rotation"],
                     "z_index": row["z_index"],
+                    "clip_top": row["clip_top"],
+                    "clip_bottom": row["clip_bottom"],
                     "category": row["category"],
                     "image": row["front_path"]
                     or f"garments/{row['garment_id']}/thumb.webp",
@@ -239,11 +242,18 @@ def _validate_items(raw_items: list) -> list[tuple]:
             rotation = float(item.get("rotation", 0))
             z_index = int(item.get("z_index", 0))
             locked = 1 if item.get("locked") else 0
+            clip_top = float(item.get("clip_top", 0))
+            clip_bottom = float(item.get("clip_bottom", 1))
         except (TypeError, ValueError) as exc:
             raise ValidationError("搭配数据格式不正确") from exc
 
         if garment_id <= 0:
             raise ValidationError("搭配里有无效的衣服")
+
+        clip_top = min(1.0, max(0.0, clip_top))
+        clip_bottom = min(1.0, max(0.0, clip_bottom))
+        if clip_bottom < clip_top:
+            clip_top, clip_bottom = clip_bottom, clip_top
 
         prepared.append(
             (
@@ -254,6 +264,8 @@ def _validate_items(raw_items: list) -> list[tuple]:
                 min(180.0, max(-180.0, rotation)),
                 min(999, max(0, z_index)),
                 locked,
+                clip_top,
+                clip_bottom,
             )
         )
     return prepared
@@ -280,11 +292,34 @@ def save_items(outfit_id: int, view: str, raw_items: list) -> dict:
             )
             conn.executemany(
                 "INSERT INTO outfit_items "
-                "(outfit_id, garment_id, view, x, y, scale, rotation, z_index, locked) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "(outfit_id, garment_id, view, x, y, scale, rotation, z_index, "
+                " locked, clip_top, clip_bottom) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
-                    (outfit_id, garment_id, view, x, y, scale, rotation, z_index, locked)
-                    for (garment_id, x, y, scale, rotation, z_index, locked) in prepared
+                    (
+                        outfit_id,
+                        garment_id,
+                        view,
+                        x,
+                        y,
+                        scale,
+                        rotation,
+                        z_index,
+                        locked,
+                        clip_top,
+                        clip_bottom,
+                    )
+                    for (
+                        garment_id,
+                        x,
+                        y,
+                        scale,
+                        rotation,
+                        z_index,
+                        locked,
+                        clip_top,
+                        clip_bottom,
+                    ) in prepared
                 ],
             )
             conn.execute(

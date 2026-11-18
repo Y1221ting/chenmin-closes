@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS garment_images (
     path       TEXT    NOT NULL,
     width      INTEGER,
     height     INTEGER,
+    scale      REAL    NOT NULL DEFAULT 1.0,
+    offset_x   REAL    NOT NULL DEFAULT 0,
+    offset_y   REAL    NOT NULL DEFAULT 0,
     FOREIGN KEY (garment_id) REFERENCES garments(id) ON DELETE CASCADE,
     UNIQUE (garment_id, angle)
 );
@@ -111,12 +114,27 @@ def transaction() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+def _ensure_image_columns(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上角度微调字段。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(garment_images)")}
+    additions = {
+        "scale": "REAL NOT NULL DEFAULT 1.0",
+        "offset_x": "REAL NOT NULL DEFAULT 0",
+        "offset_y": "REAL NOT NULL DEFAULT 0",
+    }
+    for name, ddl in additions.items():
+        if name not in columns:
+            conn.execute(f"ALTER TABLE garment_images ADD COLUMN {name} {ddl}")
+            logger.info("数据库迁移：garment_images 新增字段 %s", name)
+
+
 def init_db() -> None:
     """建表并写入初始场景标签（幂等）。"""
     conn = get_conn()
     try:
         with conn:
             conn.executescript(SCHEMA_SQL)
+            _ensure_image_columns(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < SCHEMA_VERSION:
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

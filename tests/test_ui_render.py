@@ -185,6 +185,15 @@ def main() -> int:
         failures += 0 if check_rot else 1
         print(f"[{'PASS' if check_rot else 'FAIL'}] 图片地址带缓存版本号")
 
+        adjust_count = detail_html.count('class="angle-adjust"')
+        check_rot = adjust_count == 3
+        failures += 0 if check_rot else 1
+        print(f"[{'PASS' if check_rot else 'FAIL'}] 微调面板有 3 个（实际 {adjust_count}）")
+
+        check_rot = "微调" in detail_html
+        failures += 0 if check_rot else 1
+        print(f"[{'PASS' if check_rot else 'FAIL'}] 微调按钮存在")
+
         html = detail_html
         ok = "本地服务连接失败" not in html and "启动失败" not in html
         failures += 0 if ok else 1

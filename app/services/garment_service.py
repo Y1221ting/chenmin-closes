@@ -58,8 +58,8 @@ def _attach_images(conn: sqlite3.Connection, garments: list[dict]) -> None:
     ids = [item["id"] for item in garments]
     placeholders = ",".join("?" for _ in ids)
     rows = conn.execute(
-        f"SELECT garment_id, angle, path, width, height FROM garment_images "
-        f"WHERE garment_id IN ({placeholders})",
+        f"SELECT garment_id, angle, path, width, height, scale, offset_x, offset_y "
+        f"FROM garment_images WHERE garment_id IN ({placeholders})",
         ids,
     ).fetchall()
 
@@ -69,6 +69,9 @@ def _attach_images(conn: sqlite3.Connection, garments: list[dict]) -> None:
             "path": row["path"],
             "width": row["width"],
             "height": row["height"],
+            "scale": row["scale"],
+            "offset_x": row["offset_x"],
+            "offset_y": row["offset_y"],
         }
 
     for item in garments:
@@ -262,6 +265,41 @@ def save_image(garment_id: int, angle: str, raw: bytes) -> dict:
     logger.info("已保存图片 id=%s angle=%s size=%sx%s", garment_id, angle,
                 processed["width"], processed["height"])
     return processed
+
+
+def adjust_image(garment_id: int, angle: str, data: dict) -> dict:
+    """保存某个角度的缩放与位置微调。"""
+    try:
+        scale = float(data.get("scale", 1.0))
+        offset_x = float(data.get("offset_x", 0.0))
+        offset_y = float(data.get("offset_y", 0.0))
+    except (TypeError, ValueError) as exc:
+        raise ValidationError("微调参数格式不正确") from exc
+
+    if not 0.5 <= scale <= 2.0:
+        raise ValidationError("大小调整范围是 50% ~ 200%")
+    if not -50 <= offset_x <= 50:
+        raise ValidationError("水平调整范围是 -50% ~ 50%")
+    if not -50 <= offset_y <= 50:
+        raise ValidationError("垂直调整范围是 -50% ~ 50%")
+
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "UPDATE garment_images SET scale = ?, offset_x = ?, offset_y = ? "
+                "WHERE garment_id = ? AND angle = ?",
+                (scale, offset_x, offset_y, garment_id, angle),
+            )
+            if cursor.rowcount == 0:
+                raise NotFoundError("这个角度还没有图片，无法微调")
+    except sqlite3.Error as exc:
+        logger.exception("保存角度微调失败 id=%s angle=%s", garment_id, angle)
+        raise ServiceError("保存微调失败，请重试") from exc
+    finally:
+        conn.close()
+
+    return get_garment(garment_id)["images"][angle]
 
 
 def delete_garment(garment_id: int) -> None:

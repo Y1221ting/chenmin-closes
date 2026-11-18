@@ -42,8 +42,11 @@
     const styles = App.rotateMath.sample(state.frames, state.angle);
     state.frames.forEach((frame, index) => {
       const style = styles[index];
+      const adjust = frame.adjust || { scale: 1, offsetX: 0, offsetY: 0 };
       frame.el.style.transform =
-        `rotateY(${style.rotateY.toFixed(2)}deg) scaleX(${style.scaleX.toFixed(3)})`;
+        `translate(${adjust.offsetX.toFixed(2)}%, ${adjust.offsetY.toFixed(2)}%) ` +
+        `rotateY(${style.rotateY.toFixed(2)}deg) ` +
+        `scaleX(${style.scaleX.toFixed(3)}) scale(${adjust.scale.toFixed(3)})`;
       frame.el.style.opacity = style.opacity.toFixed(3);
     });
     updateDots();
@@ -183,7 +186,17 @@
       return;
     }
 
-    state.frames = App.rotateMath.buildFrames(angles);
+    state.frames = App.rotateMath.buildFrames(angles).map((frame) => {
+      const data = images[frame.angle];
+      return {
+        ...frame,
+        adjust: {
+          scale: typeof data.scale === 'number' ? data.scale : 1,
+          offsetX: typeof data.offset_x === 'number' ? data.offset_x : 0,
+          offsetY: typeof data.offset_y === 'number' ? data.offset_y : 0,
+        },
+      };
+    });
     state.maxAngle = state.frames[state.frames.length - 1].ideal;
     state.angle =
       options && options.keepAngle ? Math.min(previousAngle, state.maxAngle) : 0;
@@ -223,5 +236,16 @@
     els.view.addEventListener('dblclick', onDoubleClick);
   }
 
-  App.rotateView = { init, mount, destroy };
+  function setAdjustment(angle, adjustment) {
+    const frame = state.frames.find((item) => item.angle === angle);
+    if (!frame) return;
+    frame.adjust = {
+      scale: adjustment.scale,
+      offsetX: adjustment.offset_x,
+      offsetY: adjustment.offset_y,
+    };
+    render();
+  }
+
+  App.rotateView = { init, mount, destroy, setAdjustment };
 })(window.App = window.App || {});

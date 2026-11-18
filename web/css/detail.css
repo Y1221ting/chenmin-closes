@@ -178,11 +178,17 @@
 
 .angle-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
+}
+
+.angle-row__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .angle-row__thumb {
@@ -220,5 +226,52 @@
 .angle-row .btn {
   height: 30px;
   padding: 0 12px;
+  font-size: var(--font-size-xs);
+}
+
+/* ---------------------------------------------------------------- 角度微调 */
+
+.angle-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 4px 2px;
+  border-top: 1px solid var(--border);
+}
+
+.angle-adjust[hidden] {
+  display: none;
+}
+
+.angle-adjust__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.angle-adjust__row > span {
+  flex: 0 0 auto;
+  width: 32px;
+}
+
+.angle-adjust__row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--text);
+  cursor: pointer;
+}
+
+.angle-adjust__row em {
+  flex: 0 0 auto;
+  width: 42px;
+  font-style: normal;
+  text-align: right;
+  color: var(--text);
+}
+
+.angle-adjust .btn--link {
+  align-self: flex-end;
   font-size: var(--font-size-xs);
 }

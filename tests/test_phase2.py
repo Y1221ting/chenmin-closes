@@ -181,9 +181,47 @@ def main() -> int:
             set(r["data"]["images"]) == {"front", "front45", "side", "back135", "back"},
             "详情包含五个角度",
         )
+
+        # 7. 角度微调
+        status, r = call(
+            "PUT", f"{base}/api/garments/{d_id}/images/side",
+            json.dumps({"scale": 1.15, "offset_x": 3, "offset_y": -5}).encode("utf-8"),
+            "application/json",
+        )
+        check(status == 200 and abs(r["data"]["scale"] - 1.15) < 1e-6, "保存角度微调")
+
+        _, r = call("GET", f"{base}/api/garments/{d_id}")
+        side = r["data"]["images"]["side"]
+        check(abs(side["offset_y"] + 5) < 1e-6, "微调写入数据库")
+        check(abs(side["offset_x"] - 3) < 1e-6, "微调水平偏移正确")
+
+        status, r = call(
+            "PUT", f"{base}/api/garments/{d_id}/images/side",
+            json.dumps({"scale": 5}).encode("utf-8"),
+            "application/json",
+        )
+        check(status == 400, "拒绝超出范围的大小")
+
+        status, r = call(
+            "PUT", f"{base}/api/garments/{d_id}/images/front",
+            json.dumps({"scale": 1.0}).encode("utf-8"),
+            "application/json",
+        )
+        check(status == 200, "正面也可以微调")
+
         call("DELETE", f"{base}/api/garments/{d_id}")
 
-        # 7. 非法编辑
+        # 8. 没有图片时不能微调
+        e_id = create(base, {"name": "空衣物", "category": "top"})
+        status, r = call(
+            "PUT", f"{base}/api/garments/{e_id}/images/front",
+            json.dumps({"scale": 1.0}).encode("utf-8"),
+            "application/json",
+        )
+        check(status == 400 and "图片" in r.get("error", ""), "没有图片时拒绝微调")
+        call("DELETE", f"{base}/api/garments/{e_id}")
+
+        # 9. 非法编辑
         status, r = call(
             "PUT", f"{base}/api/garments/{a_id}",
             json.dumps({"name": "", "category": "top"}, ensure_ascii=False).encode("utf-8"),
@@ -191,7 +229,7 @@ def main() -> int:
         )
         check(status == 400 and "名称" in r.get("error", ""), "拒绝空名称的编辑")
 
-        # 8. 删除后筛选
+        # 10. 删除后筛选
         call("DELETE", f"{base}/api/garments/{b_id}")
         _, r = call("GET", f"{base}/api/garments?season=winter")
         check(len(r["data"]) == 0, "删除后对应季节筛选为空")

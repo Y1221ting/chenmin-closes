@@ -38,6 +38,14 @@ def delete_garment(req: Request) -> tuple[int, dict]:
     return 200, {"ok": True, "data": {"deleted": True}}
 
 
+def adjust_image(req: Request) -> tuple[int, dict]:
+    angle = (req.params.get("angle") or "").strip()
+    if angle not in ANGLE_LABELS:
+        raise ValidationError("未知的图片角度")
+    data = garment_service.adjust_image(_garment_id(req), angle, req.json())
+    return 200, {"ok": True, "data": data}
+
+
 def upload_image(req: Request) -> tuple[int, dict]:
     angle = (req.query.get("angle") or "").strip()
     if angle not in ANGLE_LABELS:

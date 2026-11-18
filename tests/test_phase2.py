@@ -166,7 +166,22 @@ def main() -> int:
         check(side_resp["data"]["warnings"] == [], "对齐成功时没有警告")
         call("DELETE", f"{base}/api/garments/{c_id}")
 
-        # 6. 非法编辑
+        # 6. 五角度上传
+        d_id = create(base, {"name": "五角度测试", "category": "top"})
+        for angle in ("front", "front45", "side", "back135", "back"):
+            status, _ = call(
+                "POST", f"{base}/api/garments/{d_id}/images?angle={angle}",
+                make_png(), "image/png",
+            )
+            check(status == 200, f"上传 {angle} 角度成功")
+        _, r = call("GET", f"{base}/api/garments/{d_id}")
+        check(
+            set(r["data"]["images"]) == {"front", "front45", "side", "back135", "back"},
+            "详情包含五个角度",
+        )
+        call("DELETE", f"{base}/api/garments/{d_id}")
+
+        # 7. 非法编辑
         status, r = call(
             "PUT", f"{base}/api/garments/{a_id}",
             json.dumps({"name": "", "category": "top"}, ensure_ascii=False).encode("utf-8"),
@@ -174,7 +189,7 @@ def main() -> int:
         )
         check(status == 400 and "名称" in r.get("error", ""), "拒绝空名称的编辑")
 
-        # 7. 删除后筛选
+        # 8. 删除后筛选
         call("DELETE", f"{base}/api/garments/{b_id}")
         _, r = call("GET", f"{base}/api/garments?season=winter")
         check(len(r["data"]) == 0, "删除后对应季节筛选为空")

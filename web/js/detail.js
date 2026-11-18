@@ -2,7 +2,7 @@
 (function (App) {
   'use strict';
 
-  const ANGLE_ORDER = ['front', 'side', 'back'];
+  const ANGLE_ORDER = ['front', 'front45', 'side', 'back135', 'back'];
   const state = { meta: null, garment: null };
   const els = {};
 

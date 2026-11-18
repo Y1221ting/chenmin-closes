@@ -40,6 +40,15 @@ check(JSON.stringify(ideals(sideBack)) === '[0,90]', '只有侧/背时归零为 
 const single = math.buildFrames(['front']);
 check(JSON.stringify(ideals(single)) === '[0]', '单张图只有一个角度');
 
+const five = math.buildFrames(['front', 'front45', 'side', 'back135', 'back']);
+check(
+  JSON.stringify(ideals(five)) === '[0,45,90,135,180]',
+  '五张图为 0/45/90/135/180'
+);
+
+const partial = math.buildFrames(['front', 'front45', 'side']);
+check(JSON.stringify(ideals(partial)) === '[0,45,90]', '缺少后段角度时保留 45° 间隔');
+
 // ---------------------------------------------------------------- 采样
 
 const at0 = math.sample(three, 0);
@@ -74,6 +83,18 @@ check(near(twoAt90[0].opacity, 0.5) && near(twoAt90[1].opacity, 0.5), '缺侧面
 
 const singleAt60 = math.sample(single, 60);
 check(near(singleAt60[0].opacity, 1), '单张图任何角度都完整显示');
+
+const fiveAt22 = math.sample(five, 22.5);
+check(
+  near(fiveAt22[0].opacity, 0.5) && near(fiveAt22[1].opacity, 0.5),
+  '五张图 22.5° 正面与左前 45° 各半'
+);
+
+const fiveAt112 = math.sample(five, 112.5);
+check(
+  near(fiveAt112[2].opacity, 0.5) && near(fiveAt112[3].opacity, 0.5),
+  '五张图 112.5° 侧面与左后 135° 各半'
+);
 
 // ---------------------------------------------------------------- 边界
 

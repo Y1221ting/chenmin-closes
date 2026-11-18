@@ -2,11 +2,13 @@
 (function (App) {
   'use strict';
 
+  const ANGLE_ORDER = ['front', 'front45', 'side', 'back135', 'back'];
+
   const state = {
     meta: null,
     mode: 'create',
     garmentId: null,
-    files: { front: null, side: null, back: null },
+    files: { front: null, front45: null, side: null, back135: null, back: null },
     category: '',
     color: '',
     seasons: new Set(),
@@ -139,7 +141,7 @@
   function resetFields() {
     state.mode = 'create';
     state.garmentId = null;
-    state.files = { front: null, side: null, back: null };
+    state.files = { front: null, front45: null, side: null, back135: null, back: null };
     state.category = '';
     state.color = '';
     state.seasons = new Set();
@@ -175,9 +177,9 @@
     els.uploadHint.textContent = '不重新选择就保留原图';
     els.name.value = garment.name;
 
-    ['front', 'side', 'back'].forEach((angle) => {
+    ANGLE_ORDER.forEach((angle) => {
       const image = garment.images && garment.images[angle];
-      if (image) {
+      if (image && tileOf(angle)) {
         setPreviewUrl(tileOf(angle), `/data/${image.path}`);
       }
     });
@@ -201,7 +203,7 @@
   // ---------------------------------------------------------------- 提交
 
   async function uploadSelected(garmentId) {
-    for (const angle of ['front', 'side', 'back']) {
+    for (const angle of ANGLE_ORDER) {
       const file = state.files[angle];
       if (!file) continue;
       await App.api.upload(`/api/garments/${garmentId}/images?angle=${angle}`, file);

@@ -123,17 +123,27 @@
 
       <div class="drawer__body">
         <div class="field">
-          <span class="field__label">角度图<span class="field__hint" id="upload-hint">正面必填，侧面和背面可稍后补</span></span>
+          <span class="field__label">角度图<span class="field__hint" id="upload-hint">正面必填，其余角度可稍后补</span></span>
           <div class="uploads">
             <label class="upload" data-angle="front">
               <input type="file" accept="image/png,image/webp" hidden>
               <span class="upload__preview" data-preview></span>
               <span class="upload__label">正面<em>必填</em></span>
             </label>
+            <label class="upload" data-angle="front45">
+              <input type="file" accept="image/png,image/webp" hidden>
+              <span class="upload__preview" data-preview></span>
+              <span class="upload__label">左前 45°</span>
+            </label>
             <label class="upload" data-angle="side">
               <input type="file" accept="image/png,image/webp" hidden>
               <span class="upload__preview" data-preview></span>
               <span class="upload__label">侧面</span>
+            </label>
+            <label class="upload" data-angle="back135">
+              <input type="file" accept="image/png,image/webp" hidden>
+              <span class="upload__preview" data-preview></span>
+              <span class="upload__label">左后 135°</span>
             </label>
             <label class="upload" data-angle="back">
               <input type="file" accept="image/png,image/webp" hidden>

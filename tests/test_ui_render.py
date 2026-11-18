@@ -176,6 +176,11 @@ def main() -> int:
         failures += 0 if check_rot else 1
         print(f"[{'PASS' if check_rot else 'FAIL'}] 旋转角度已写入样式")
 
+        row_count = detail_html.count('class="angle-row"')
+        check_rot = row_count == 5
+        failures += 0 if check_rot else 1
+        print(f"[{'PASS' if check_rot else 'FAIL'}] 角度图列表有 5 行（实际 {row_count}）")
+
         html = detail_html
         ok = "本地服务连接失败" not in html and "启动失败" not in html
         failures += 0 if ok else 1

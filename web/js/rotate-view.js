@@ -2,8 +2,14 @@
 (function (App) {
   'use strict';
 
-  const ORDER = ['front', 'side', 'back'];
-  const LABELS = { front: '正面', side: '侧面', back: '背面' };
+  const ORDER = ['front', 'front45', 'side', 'back135', 'back'];
+  const LABELS = {
+    front: '正面',
+    front45: '左前 45°',
+    side: '侧面',
+    back135: '左后 135°',
+    back: '背面',
+  };
 
   const state = {
     frames: [],

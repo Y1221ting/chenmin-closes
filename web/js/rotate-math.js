@@ -12,7 +12,7 @@
   'use strict';
 
   // 每个角度的理想位置（0 = 正面，180 = 背面）
-  const RAW_IDEAL = { front: 0, side: 90, back: 180 };
+  const RAW_IDEAL = { front: 0, front45: 45, side: 90, back135: 135, back: 180 };
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));

@@ -101,8 +101,15 @@ SEASONS = [
 
 SEASON_LABELS = dict(SEASONS)
 
-ANGLES = ["front", "side", "back"]
-ANGLE_LABELS = {"front": "正面", "side": "侧面", "back": "背面"}
+# 角度图顺序：从左到右对应拖动时的帧序列
+ANGLES = ["front", "front45", "side", "back135", "back"]
+ANGLE_LABELS = {
+    "front": "正面",
+    "front45": "左前 45°",
+    "side": "侧面",
+    "back135": "左后 135°",
+    "back": "背面",
+}
 
 # 画布逻辑尺寸（3:4 竖版）
 CANVAS_WIDTH = 1200

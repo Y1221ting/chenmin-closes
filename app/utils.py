@@ -71,6 +71,11 @@ def today_str() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
+def now_precise() -> str:
+    """带微秒的时间，用作图片缓存版本号（同一秒内多次替换也能区分）。"""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
+
 def clear_tmp() -> None:
     """清空临时目录（启动时调用）。"""
     if not TMP_DIR.exists():

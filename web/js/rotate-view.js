@@ -173,7 +173,8 @@
     els.dots.innerHTML = '';
   }
 
-  function mount(images) {
+  function mount(images, version, options) {
+    const previousAngle = state.angle;
     destroy();
 
     const angles = ORDER.filter((angle) => images && images[angle]);
@@ -184,8 +185,11 @@
 
     state.frames = App.rotateMath.buildFrames(angles);
     state.maxAngle = state.frames[state.frames.length - 1].ideal;
-    state.angle = 0;
-    state.hasDragged = false;
+    state.angle =
+      options && options.keepAngle ? Math.min(previousAngle, state.maxAngle) : 0;
+    state.hasDragged = state.angle > 0;
+
+    const suffix = version ? `?v=${encodeURIComponent(version)}` : '';
 
     els.frame.innerHTML = '';
     state.frames.forEach((frame) => {
@@ -193,7 +197,7 @@
       img.className = 'rotate-view__img';
       img.alt = LABELS[frame.angle] || frame.angle;
       img.draggable = false;
-      img.src = `/data/${images[frame.angle].path}`;
+      img.src = `/data/${images[frame.angle].path}${suffix}`;
       els.frame.appendChild(img);
       frame.el = img;
     });

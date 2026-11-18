@@ -5,6 +5,7 @@
   const ANGLE_ORDER = ['front', 'front45', 'side', 'back135', 'back'];
   const state = { meta: null, garment: null };
   const els = {};
+  let keepAngleOnNextMount = false;
 
   function cache() {
     els.page = document.getElementById('page-garment');
@@ -52,6 +53,9 @@
 
   function renderAngles(garment) {
     els.angles.innerHTML = '';
+    const version = garment.updated_at
+      ? `?v=${encodeURIComponent(garment.updated_at)}`
+      : '';
 
     ANGLE_ORDER.forEach((angle) => {
       const angleMeta = (state.meta.angles || []).find((opt) => opt.value === angle);
@@ -62,7 +66,7 @@
       row.className = 'angle-row';
       row.innerHTML = `
         <div class="angle-row__thumb">
-          ${image ? `<img src="/data/${App.ui.escapeHtml(image.path)}" alt="${label}">` : ''}
+          ${image ? `<img src="/data/${App.ui.escapeHtml(image.path)}${version}" alt="${label}">` : ''}
         </div>
         <div class="angle-row__name">${label}</div>
         <span class="angle-row__state">${image ? '' : '未上传'}</span>
@@ -82,7 +86,10 @@
 
     const hasImages = Object.keys(garment.images).length > 0;
     els.placeholder.hidden = hasImages;
-    App.rotateView.mount(garment.images);
+    App.rotateView.mount(garment.images, garment.updated_at, {
+      keepAngle: keepAngleOnNextMount,
+    });
+    keepAngleOnNextMount = false;
 
     renderInfo(garment);
     renderAngles(garment);
@@ -105,6 +112,7 @@
           file
         );
         App.ui.toast(`${label}图已更新`);
+        keepAngleOnNextMount = true;
         await load(state.garment.id);
         App.wardrobe.load();
       } catch (err) {

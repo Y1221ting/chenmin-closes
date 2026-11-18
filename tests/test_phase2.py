@@ -139,6 +139,7 @@ def main() -> int:
         # 4. 替换正面图
         _, before = call("GET", f"{base}/api/garments/{a_id}")
         before_width = before["data"]["images"]["front"]["width"]
+        before_updated = before["data"]["updated_at"]
 
         status, r = call(
             "POST", f"{base}/api/garments/{a_id}/images?angle=front",
@@ -150,6 +151,7 @@ def main() -> int:
         _, after = call("GET", f"{base}/api/garments/{a_id}")
         check(after["data"]["images"]["front"]["width"] == r["data"]["width"], "详情返回新尺寸")
         check((GARMENTS_DIR / str(a_id) / "thumb.webp").is_file(), "缩略图已重新生成")
+        check(after["data"]["updated_at"] != before_updated, "替换图片后版本号变化")
 
         # 5. 不同尺寸的侧面图自动对齐到正面高度
         c_id = create(base, {"name": "对齐测试", "category": "top"})

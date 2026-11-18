@@ -181,6 +181,10 @@ def main() -> int:
         failures += 0 if check_rot else 1
         print(f"[{'PASS' if check_rot else 'FAIL'}] 角度图列表有 5 行（实际 {row_count}）")
 
+        check_rot = "?v=" in detail_html
+        failures += 0 if check_rot else 1
+        print(f"[{'PASS' if check_rot else 'FAIL'}] 图片地址带缓存版本号")
+
         html = detail_html
         ok = "本地服务连接失败" not in html and "启动失败" not in html
         failures += 0 if ok else 1

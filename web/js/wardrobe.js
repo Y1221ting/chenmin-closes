@@ -109,8 +109,11 @@
     card.dataset.id = item.id;
     card.style.animationDelay = `${Math.min(index, 12) * 24}ms`;
 
+    const version = item.updated_at
+      ? `?v=${encodeURIComponent(item.updated_at)}`
+      : '';
     const media = item.thumb
-      ? `<img src="/data/${App.ui.escapeHtml(item.thumb)}" alt="${App.ui.escapeHtml(item.name)}" loading="lazy">`
+      ? `<img src="/data/${App.ui.escapeHtml(item.thumb)}${version}" alt="${App.ui.escapeHtml(item.name)}" loading="lazy">`
       : `<span class="card__placeholder">暂无图片<br>${App.ui.escapeHtml(categoryLabels[item.category] || '')}</span>`;
 
     const meta = [

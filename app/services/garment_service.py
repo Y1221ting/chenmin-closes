@@ -8,7 +8,7 @@ from ..config import CATEGORY_LABELS, COLOR_LABELS, SEASON_LABELS
 from ..db import get_conn
 from ..errors import NotFoundError, ServiceError, ValidationError
 from ..models import dump_list, row_to_dict, rows_to_dicts
-from ..utils import logger, now_str
+from ..utils import logger, now_precise, now_str
 from . import image_service
 
 
@@ -244,6 +244,11 @@ def save_image(garment_id: int, angle: str, raw: bytes) -> dict:
                     processed["width"],
                     processed["height"],
                 ),
+            )
+            # 更新时间戳，前端用它做图片缓存版本号
+            conn.execute(
+                "UPDATE garments SET updated_at = ? WHERE id = ?",
+                (now_precise(), garment_id),
             )
     except sqlite3.Error as exc:
         logger.exception("保存衣服图片记录失败 id=%s angle=%s", garment_id, angle)

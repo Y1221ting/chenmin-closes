@@ -194,6 +194,50 @@ def main() -> int:
         failures += 0 if check_rot else 1
         print(f"[{'PASS' if check_rot else 'FAIL'}] 微调按钮存在")
 
+        # 6. 搭配库与搭配编辑
+        outfit_payload = json.dumps(
+            {"name": "UI 搭配", "scenes": ["日常"]}, ensure_ascii=False
+        ).encode("utf-8")
+        _, outfit_resp = call("POST", base + "/api/outfits", outfit_payload, "application/json")
+        outfit_id = outfit_resp["data"]["id"]
+        call(
+            "PUT",
+            f"{base}/api/outfits/{outfit_id}/items?view=flat",
+            json.dumps({
+                "items": [{
+                    "garment_id": garment_id, "x": 0.5, "y": 0.4,
+                    "scale": 1, "rotation": 0, "z_index": 0,
+                }]
+            }).encode("utf-8"),
+            "application/json",
+        )
+
+        outfits_html = dump_dom(browser, base + "/#outfits", profile)
+        for text, label in [("UI 搭配", "搭配名称"), ("1 套搭配", "搭配数量")]:
+            ok = text in outfits_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
+
+        editor_html = dump_dom(browser, f"{base}/#outfit/{outfit_id}", profile)
+        for text, label in [
+            ("场景标签", "场景面板"),
+            ("选中的单品", "单品面板"),
+            ("UI 搭配", "名称输入框"),
+        ]:
+            ok = text in editor_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
+
+        canvas_items = editor_html.count('class="canvas-item"')
+        ok = canvas_items == 1
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 画布渲染 1 件单品（实际 {canvas_items}）")
+
+        editor_items = editor_html.count('class="editor-item"')
+        ok = editor_items >= 1
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 左侧衣柜列出衣服（实际 {editor_items}）")
+
         html = detail_html
         ok = "本地服务连接失败" not in html and "启动失败" not in html
         failures += 0 if ok else 1

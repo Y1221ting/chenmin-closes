@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..config import APP_NAME, APP_VERSION
 from ..router import Request, Router
-from . import garments, meta
+from . import garments, meta, outfits
 
 
 def _health(_req: Request) -> tuple[int, dict]:
@@ -27,5 +27,12 @@ def build_router() -> Router:
     router.put("/api/garments/{id}/images/{angle}")(garments.adjust_image)
 
     router.post("/api/scenes")(meta.add_scene)
+
+    router.get("/api/outfits")(outfits.list_outfits)
+    router.post("/api/outfits")(outfits.create_outfit)
+    router.get("/api/outfits/{id}")(outfits.get_outfit)
+    router.put("/api/outfits/{id}")(outfits.update_outfit)
+    router.delete("/api/outfits/{id}")(outfits.delete_outfit)
+    router.put("/api/outfits/{id}/items")(outfits.save_items)
 
     return router

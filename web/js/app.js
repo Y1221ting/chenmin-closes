@@ -6,10 +6,13 @@
     try {
       const meta = await App.api.get('/api/meta');
       document.getElementById('app-version').textContent = `v${meta.app.version}`;
+      App.nav.init();
       App.rotateView.init();
       App.garmentForm.init(meta);
       App.detail.init(meta);
       App.wardrobe.init(meta);
+      App.outfits.init(meta);
+      App.outfitEditor.init(meta);
       App.nav.handleRoute();
     } catch (err) {
       App.ui.toast(`启动失败：${err.message}`, 'error');

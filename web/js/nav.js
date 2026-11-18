@@ -1,46 +1,75 @@
-/* 页面切换：衣柜 ↔ 衣服详情，用 hash 记录当前位置。 */
+/* 页面切换：衣柜 / 搭配库 / 搭配编辑 / 衣服详情，用 hash 记录位置。 */
 (function (App) {
   'use strict';
 
-  function showWardrobe() {
-    document.getElementById('page-wardrobe').hidden = false;
-    document.getElementById('page-garment').hidden = true;
-    document.getElementById('nav-wardrobe').classList.add('is-active');
+  const PAGES = ['page-wardrobe', 'page-outfits', 'page-outfit', 'page-garment'];
+  let ready = false;
+
+  function showPage(pageId) {
+    PAGES.forEach((id) => {
+      document.getElementById(id).hidden = id !== pageId;
+    });
+    document
+      .getElementById('nav-wardrobe')
+      .classList.toggle('is-active', pageId === 'page-wardrobe' || pageId === 'page-garment');
+    document
+      .getElementById('nav-outfits')
+      .classList.toggle('is-active', pageId === 'page-outfits' || pageId === 'page-outfit');
   }
 
-  function showGarment(id) {
-    document.getElementById('page-wardrobe').hidden = true;
-    document.getElementById('page-garment').hidden = false;
-    App.detail.load(id);
+  function navigate(hash) {
+    if (location.hash === hash) {
+      handleRoute();
+    } else {
+      location.hash = hash;
+    }
   }
 
   function toWardrobe() {
-    if (location.hash && location.hash !== '#wardrobe') {
-      location.hash = '#wardrobe';
-    } else {
-      showWardrobe();
-    }
+    navigate('#wardrobe');
+  }
+
+  function toOutfits() {
+    navigate('#outfits');
+  }
+
+  function toOutfit(id) {
+    navigate(`#outfit/${id}`);
   }
 
   function toGarment(id) {
-    const hash = `#garment/${id}`;
-    if (location.hash !== hash) {
-      location.hash = hash;
-    } else {
-      showGarment(id);
-    }
+    navigate(`#garment/${id}`);
   }
 
   function handleRoute() {
-    const match = location.hash.match(/^#garment\/(\d+)$/);
-    if (match) {
-      showGarment(Number(match[1]));
-    } else {
-      showWardrobe();
+    if (!ready) return;
+    const hash = location.hash || '#wardrobe';
+    let match;
+
+    if ((match = hash.match(/^#garment\/(\d+)$/))) {
+      showPage('page-garment');
+      App.detail.load(Number(match[1]));
+      return;
     }
+    if ((match = hash.match(/^#outfit\/(\d+)$/))) {
+      showPage('page-outfit');
+      App.outfitEditor.load(Number(match[1]));
+      return;
+    }
+    if (hash === '#outfits') {
+      showPage('page-outfits');
+      App.outfits.load();
+      return;
+    }
+    showPage('page-wardrobe');
   }
 
-  window.addEventListener('hashchange', handleRoute);
+  function init() {
+    document.getElementById('nav-wardrobe').addEventListener('click', toWardrobe);
+    document.getElementById('nav-outfits').addEventListener('click', toOutfits);
+    window.addEventListener('hashchange', handleRoute);
+    ready = true;
+  }
 
-  App.nav = { toWardrobe, toGarment, handleRoute };
+  App.nav = { init, toWardrobe, toOutfits, toOutfit, toGarment, handleRoute };
 })(window.App = window.App || {});

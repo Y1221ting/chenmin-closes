@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/wardrobe.css">
   <link rel="stylesheet" href="/css/detail.css">
+  <link rel="stylesheet" href="/css/outfit.css">
 </head>
 <body>
   <div class="app">
@@ -21,7 +22,7 @@
       </div>
       <nav class="sidebar__nav">
         <button class="nav-item is-active" type="button" id="nav-wardrobe">衣柜</button>
-        <button class="nav-item" type="button" disabled>搭配<span class="nav-item__soon">即将</span></button>
+        <button class="nav-item" type="button" id="nav-outfits">搭配</button>
         <button class="nav-item" type="button" disabled>设置<span class="nav-item__soon">即将</span></button>
       </nav>
       <div class="sidebar__foot" id="app-version"></div>
@@ -74,6 +75,87 @@
           <p class="empty__text">换个筛选条件试试。</p>
           <button class="btn btn--ghost" id="btn-clear-empty" type="button">清除筛选</button>
         </section>
+      </section>
+
+      <!-- ================= 搭配库 ================= -->
+      <section class="page" id="page-outfits" hidden>
+        <header class="topbar">
+          <div class="topbar__heading">
+            <h1 class="topbar__title">搭配</h1>
+            <p class="topbar__sub" id="outfit-count">正在加载…</p>
+          </div>
+          <div class="topbar__actions">
+            <button id="btn-new-outfit" class="btn btn--primary" type="button">＋ 新建搭配</button>
+          </div>
+        </header>
+
+        <section class="grid" id="outfit-grid"></section>
+
+        <section class="empty" id="outfit-empty" hidden>
+          <p class="empty__title">还没有搭配</p>
+          <p class="empty__text">新建一套搭配，把衣服拖到画布上自由组合。</p>
+          <button class="btn btn--primary" id="btn-new-outfit-empty" type="button">新建第一套搭配</button>
+        </section>
+      </section>
+
+      <!-- ================= 搭配编辑 ================= -->
+      <section class="page" id="page-outfit" hidden>
+        <header class="topbar">
+          <div class="topbar__heading">
+            <button class="btn btn--link" id="btn-outfit-back" type="button">← 搭配库</button>
+            <input id="outfit-name" class="input input--title" maxlength="40" placeholder="搭配名称">
+          </div>
+          <div class="topbar__actions">
+            <span id="save-status" class="save-status">已保存</span>
+            <button id="btn-outfit-delete" class="btn btn--ghost btn--danger" type="button">删除</button>
+          </div>
+        </header>
+
+        <div class="editor">
+          <aside class="editor__drawer">
+            <input id="editor-search" class="input" type="search" placeholder="搜索衣服…" autocomplete="off">
+            <div class="editor__list" id="editor-garments"></div>
+          </aside>
+
+          <div class="editor__stage">
+            <div class="canvas-viewport" id="canvas-viewport">
+              <div class="canvas" id="outfit-canvas"></div>
+            </div>
+          </div>
+
+          <aside class="editor__panel">
+            <div class="panel__section">
+              <h3 class="panel__title">场景标签</h3>
+              <div class="chips" id="outfit-scenes"></div>
+            </div>
+
+            <div class="panel__section" id="selection-panel" hidden>
+              <h3 class="panel__title">选中的单品</h3>
+              <label class="panel__row">
+                <span>大小</span>
+                <input type="range" id="item-scale" min="20" max="300" step="1">
+                <em id="item-scale-value">100%</em>
+              </label>
+              <label class="panel__row">
+                <span>旋转</span>
+                <input type="range" id="item-rotation" min="-180" max="180" step="1">
+                <em id="item-rotation-value">0°</em>
+              </label>
+              <div class="panel__buttons">
+                <button class="btn btn--ghost" id="btn-layer-top" type="button">置顶</button>
+                <button class="btn btn--ghost" id="btn-layer-bottom" type="button">置底</button>
+                <button class="btn btn--ghost" id="btn-layer-up" type="button">上移</button>
+                <button class="btn btn--ghost" id="btn-layer-down" type="button">下移</button>
+                <button class="btn btn--ghost btn--danger" id="btn-item-delete" type="button">删除</button>
+              </div>
+            </div>
+
+            <div class="panel__section panel__hint">
+              点击左侧衣服添加到画布<br>
+              拖动移动 · 滚轮缩放 · Delete 删除
+            </div>
+          </aside>
+        </div>
       </section>
 
       <!-- ================= 衣服详情页 ================= -->
@@ -195,6 +277,8 @@
   <script src="/js/rotate-math.js"></script>
   <script src="/js/rotate-view.js"></script>
   <script src="/js/wardrobe.js"></script>
+  <script src="/js/outfits.js"></script>
+  <script src="/js/outfit-editor.js"></script>
   <script src="/js/detail.js"></script>
   <script src="/js/garment-form.js"></script>
   <script src="/js/app.js"></script>

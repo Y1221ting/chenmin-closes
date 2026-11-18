@@ -98,11 +98,17 @@
 
 .rack-item {
   position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   width: 150px;
   height: 300px;
   cursor: pointer;
   outline: none;
+}
+
+.rack-item:hover,
+.rack-item:focus-visible {
+  z-index: 6;
 }
 
 .rack-item:focus-visible {
@@ -138,7 +144,16 @@
   width: 140px;
   height: 210px;
   transform: translateX(-50%);
+  transform-origin: top center;
   perspective: 900px;
+  transition: transform 260ms var(--ease);
+  will-change: transform;
+}
+
+/* 悬停时整体放大，正面不会比侧面小 */
+.rack-item:hover .rack-item__garment,
+.rack-item:focus-visible .rack-item__garment {
+  transform: translateX(-50%) scale(1.15);
 }
 
 .rack-item__garment img {
@@ -151,8 +166,19 @@
   max-height: 100%;
   object-fit: contain;
   transform-origin: top center;
-  transition: opacity 260ms var(--ease), transform 260ms var(--ease);
-  will-change: transform, opacity;
+  transition: opacity 260ms var(--ease), transform 260ms var(--ease),
+              filter 260ms var(--ease);
+  will-change: transform, opacity, filter;
+}
+
+/* 正面浮起阴影，侧面不投影 */
+.rack-item__front {
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+}
+
+.rack-item:hover .rack-item__front,
+.rack-item:focus-visible .rack-item__front {
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.2));
 }
 
 .rack-item__side {

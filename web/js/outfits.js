@@ -111,9 +111,19 @@
     el.className = 'card outfit-card';
     el.dataset.id = outfit.id;
 
+    const suffix = outfit.updated_at
+      ? `?v=${encodeURIComponent(outfit.updated_at)}`
+      : '';
+    const cover = outfit.worn_cover
+      ? `<img class="outfit-worn-cover" src="/data/${App.ui.escapeHtml(outfit.worn_cover)}${suffix}" alt="${App.ui.escapeHtml(outfit.name)}" loading="lazy">`
+      : miniPreview(outfit);
+
     el.innerHTML = `
       <button class="card__delete" type="button" title="删除">✕</button>
-      <div class="card__media outfit-card__cover">${miniPreview(outfit)}</div>
+      <div class="card__media outfit-card__cover">
+        ${cover}
+        ${outfit.worn_cover ? '<span class="outfit-badge">上身</span>' : ''}
+      </div>
       <div class="card__body">
         <p class="card__name">${App.ui.escapeHtml(outfit.name)}</p>
         <p class="card__meta">${outfit.item_count} 件 · ${App.ui.escapeHtml(sceneText(outfit))}</p>

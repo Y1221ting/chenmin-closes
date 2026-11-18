@@ -15,7 +15,13 @@ import shutil
 
 from PIL import Image
 
-from ..config import ANGLES, GARMENTS_DIR
+from ..config import (
+    ANGLES,
+    CANVAS_HEIGHT,
+    CANVAS_WIDTH,
+    GARMENTS_DIR,
+    OUTFITS_DIR,
+)
 from ..errors import ServiceError
 from ..utils import logger
 
@@ -174,3 +180,98 @@ def delete_garment_dir(garment_id: int) -> None:
         shutil.rmtree(folder)
     except OSError:
         logger.exception("删除衣服图片目录失败: %s", folder)
+
+
+# ---------------------------------------------------------------- 搭配上身图
+
+OUTFIT_MIN_SIDE = 300
+OUTFIT_MAX_UPSCALE = 2.0
+OUTFIT_THUMB_SIZE = 400
+
+
+def process_outfit_image(outfit_id: int, angle: str, raw: bytes) -> dict:
+    """把整套上身图统一到 1200×1600 的白底画布，便于多角度旋转。"""
+    if angle not in ANGLES:
+        raise ServiceError("未知的图片角度")
+    if not raw:
+        raise ServiceError("图片内容为空")
+
+    try:
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+    except Exception as exc:  # noqa: BLE001 - Pillow 异常类型不统一
+        raise ServiceError("图片无法识别，请上传 JPG 或 PNG") from exc
+
+    if min(img.size) < OUTFIT_MIN_SIDE:
+        raise ServiceError(
+            f"图片太小（{img.size[0]}×{img.size[1]}），最短边至少 {OUTFIT_MIN_SIDE} 像素"
+        )
+
+    rgba = img.convert("RGBA")
+    # 透明背景统一铺白；有背景的图保持原样
+    flattened = Image.new("RGB", rgba.size, (255, 255, 255))
+    flattened.paste(rgba, mask=rgba.getchannel("A"))
+
+    scale = min(CANVAS_WIDTH / flattened.width, CANVAS_HEIGHT / flattened.height)
+    scale = min(scale, OUTFIT_MAX_UPSCALE)
+    if abs(scale - 1) > 1e-3:
+        flattened = flattened.resize(
+            (max(1, round(flattened.width * scale)), max(1, round(flattened.height * scale))),
+            Image.Resampling.LANCZOS,
+        )
+
+    canvas = Image.new("RGB", (CANVAS_WIDTH, CANVAS_HEIGHT), (255, 255, 255))
+    canvas.paste(
+        flattened,
+        (
+            (CANVAS_WIDTH - flattened.width) // 2,
+            (CANVAS_HEIGHT - flattened.height) // 2,
+        ),
+    )
+
+    folder = OUTFITS_DIR / str(outfit_id)
+    original_dir = folder / "original"
+    original_dir.mkdir(parents=True, exist_ok=True)
+    rgba.save(original_dir / f"{angle}.png", "PNG")
+
+    output = folder / f"{angle}.webp"
+    canvas.save(output, "WEBP", quality=90, method=4)
+
+    return {
+        "path": f"outfits/{outfit_id}/{angle}.webp",
+        "width": canvas.width,
+        "height": canvas.height,
+    }
+
+
+def make_outfit_thumb(outfit_id: int) -> dict | None:
+    """用上身正面图生成搭配封面。"""
+    front = OUTFITS_DIR / str(outfit_id) / "front.webp"
+    if not front.is_file():
+        return None
+    with Image.open(front) as source:
+        img = source.convert("RGB")
+        img.thumbnail((OUTFIT_THUMB_SIZE, OUTFIT_THUMB_SIZE), Image.Resampling.LANCZOS)
+        output = OUTFITS_DIR / str(outfit_id) / "thumb.webp"
+        img.save(output, "WEBP", quality=85, method=4)
+        return {
+            "path": f"outfits/{outfit_id}/thumb.webp",
+            "width": img.size[0],
+            "height": img.size[1],
+        }
+
+
+def outfit_thumb_path(outfit_id: int) -> str | None:
+    if (OUTFITS_DIR / str(outfit_id) / "thumb.webp").is_file():
+        return f"outfits/{outfit_id}/thumb.webp"
+    return None
+
+
+def delete_outfit_dir(outfit_id: int) -> None:
+    folder = OUTFITS_DIR / str(outfit_id)
+    if not folder.exists():
+        return
+    try:
+        shutil.rmtree(folder)
+    except OSError:
+        logger.exception("删除搭配图片目录失败: %s", folder)

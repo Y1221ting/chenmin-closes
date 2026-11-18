@@ -62,6 +62,7 @@
     els.itemClipBottomValue = document.getElementById('item-clip-bottom-value');
     els.deleteBtn = document.getElementById('btn-outfit-delete');
     els.exportBtn = document.getElementById('btn-export');
+    els.wornBtn = document.getElementById('btn-worn');
   }
 
   function clamp(value, min, max) {
@@ -570,6 +571,11 @@
       .addEventListener('click', () => App.nav.toOutfits());
     els.deleteBtn.addEventListener('click', onDeleteOutfit);
     els.exportBtn.addEventListener('click', exportOutfit);
+    els.wornBtn.addEventListener('click', () => {
+      if (state.outfit) {
+        App.nav.toOutfitWorn(state.outfit.id);
+      }
+    });
 
     els.search.addEventListener('input', () => {
       state.keyword = els.search.value;

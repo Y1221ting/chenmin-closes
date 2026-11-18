@@ -3,6 +3,7 @@
 /* ---------------------------------------------------------------- 搭配库 */
 
 .outfit-card .card__media {
+  position: relative;
   padding: 14px;
 }
 
@@ -24,6 +25,89 @@
 .outfit-card:hover .outfit-mini {
   transform: scale(1.03);
   transition: transform 260ms var(--ease);
+}
+
+.outfit-worn-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.outfit-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* ---------------------------------------------------------------- 上身展示 */
+
+.worn-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  overflow: hidden;
+}
+
+.worn-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.worn-stage .rotate-view {
+  width: 100%;
+  height: 100%;
+}
+
+.worn-empty {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.worn-empty[hidden] {
+  display: none;
+}
+
+.worn-empty__title {
+  margin-bottom: 8px;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.worn-empty__text {
+  font-size: var(--font-size-sm);
+  line-height: 1.9;
+}
+
+.worn-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+}
+
+@media (max-width: 1180px) {
+  .worn-layout {
+    grid-template-columns: minmax(0, 1fr) 270px;
+  }
 }
 
 /* ---------------------------------------------------------------- 编辑器布局 */

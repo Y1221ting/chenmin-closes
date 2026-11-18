@@ -8,11 +8,13 @@
       document.getElementById('app-version').textContent = `v${meta.app.version}`;
       App.nav.init();
       App.rotateView.init();
+      App.outfitWornView.init();
       App.garmentForm.init(meta);
       App.detail.init(meta);
       App.wardrobe.init(meta);
       App.outfits.init(meta);
       App.outfitEditor.init(meta);
+      App.outfitWorn.init(meta);
       App.nav.handleRoute();
     } catch (err) {
       App.ui.toast(`启动失败：${err.message}`, 'error');

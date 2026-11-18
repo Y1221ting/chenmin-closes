@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import sqlite3
 
+from ..config import ANGLE_LABELS
 from ..db import get_conn
 from ..errors import NotFoundError, ServiceError, ValidationError
 from ..models import dump_list, row_to_dict, rows_to_dicts
 from ..utils import logger, now_precise, now_str
+from . import image_service
 
 VIEWS = ("flat", "worn")
 MAX_ITEMS = 60
@@ -31,6 +33,34 @@ def _validate_meta(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------- 查询
+
+
+def _attach_images(conn: sqlite3.Connection, outfits: list[dict]) -> None:
+    """批量补上整套上身图与封面。"""
+    if not outfits:
+        return
+    ids = [item["id"] for item in outfits]
+    placeholders = ",".join("?" for _ in ids)
+    rows = conn.execute(
+        f"SELECT outfit_id, angle, path, width, height, scale, offset_x, offset_y "
+        f"FROM outfit_images WHERE outfit_id IN ({placeholders})",
+        ids,
+    ).fetchall()
+
+    grouped: dict[int, dict] = {}
+    for row in rows:
+        grouped.setdefault(row["outfit_id"], {})[row["angle"]] = {
+            "path": row["path"],
+            "width": row["width"],
+            "height": row["height"],
+            "scale": row["scale"],
+            "offset_x": row["offset_x"],
+            "offset_y": row["offset_y"],
+        }
+
+    for outfit in outfits:
+        outfit["images"] = grouped.get(outfit["id"], {})
+        outfit["worn_cover"] = image_service.outfit_thumb_path(outfit["id"])
 
 
 def list_outfits(filters: dict | None = None) -> list[dict]:
@@ -94,10 +124,15 @@ def list_outfits(filters: dict | None = None) -> list[dict]:
             items = grouped.get(outfit["id"], [])
             outfit["items"] = items
             outfit["item_count"] = len(items)
-            outfit["cover"] = (
+            outfit["categories"] = sorted({item["category"] for item in items})
+
+        _attach_images(conn, outfits)
+
+        for outfit in outfits:
+            items = outfit["items"]
+            outfit["cover"] = outfit["worn_cover"] or (
                 f"garments/{items[0]['garment_id']}/thumb.webp" if items else None
             )
-            outfit["categories"] = sorted({item["category"] for item in items})
         return outfits
     except sqlite3.Error as exc:
         logger.exception("查询搭配列表失败")
@@ -141,6 +176,7 @@ def get_outfit(outfit_id: int) -> dict:
             grouped.setdefault(data["view"], []).append(data)
 
         outfit["items"] = grouped
+        _attach_images(conn, [outfit])
         return outfit
     except sqlite3.Error as exc:
         logger.exception("读取搭配失败 id=%s", outfit_id)
@@ -220,7 +256,87 @@ def delete_outfit(outfit_id: int) -> None:
 
     if not deleted:
         raise NotFoundError("搭配不存在或已被删除")
+
+    image_service.delete_outfit_dir(outfit_id)
     logger.info("已删除搭配 id=%s", outfit_id)
+
+
+def save_image(outfit_id: int, angle: str, raw: bytes) -> dict:
+    """保存整套上身图的一个角度。"""
+    if angle not in ANGLE_LABELS:
+        raise ValidationError("未知的图片角度")
+    get_outfit(outfit_id)
+
+    processed = image_service.process_outfit_image(outfit_id, angle, raw)
+
+    conn = get_conn()
+    try:
+        with conn:
+            conn.execute(
+                "INSERT INTO outfit_images (outfit_id, angle, path, width, height) "
+                "VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(outfit_id, angle) DO UPDATE SET "
+                "path = excluded.path, width = excluded.width, height = excluded.height",
+                (
+                    outfit_id,
+                    angle,
+                    processed["path"],
+                    processed["width"],
+                    processed["height"],
+                ),
+            )
+            conn.execute(
+                "UPDATE outfits SET updated_at = ? WHERE id = ?",
+                (now_precise(), outfit_id),
+            )
+    except sqlite3.Error as exc:
+        logger.exception("保存上身图失败 id=%s angle=%s", outfit_id, angle)
+        raise ServiceError("保存上身图失败，请重试") from exc
+    finally:
+        conn.close()
+
+    if angle == "front":
+        image_service.make_outfit_thumb(outfit_id)
+
+    logger.info("已保存上身图 id=%s angle=%s", outfit_id, angle)
+    return get_outfit(outfit_id)["images"][angle]
+
+
+def adjust_image(outfit_id: int, angle: str, data: dict) -> dict:
+    """保存某个上身角度的缩放与位置微调。"""
+    if angle not in ANGLE_LABELS:
+        raise ValidationError("未知的图片角度")
+    try:
+        scale = float(data.get("scale", 1.0))
+        offset_x = float(data.get("offset_x", 0.0))
+        offset_y = float(data.get("offset_y", 0.0))
+    except (TypeError, ValueError) as exc:
+        raise ValidationError("微调参数格式不正确") from exc
+
+    if not 0.5 <= scale <= 2.0:
+        raise ValidationError("大小调整范围是 50% ~ 200%")
+    if not -50 <= offset_x <= 50:
+        raise ValidationError("水平调整范围是 -50% ~ 50%")
+    if not -50 <= offset_y <= 50:
+        raise ValidationError("垂直调整范围是 -50% ~ 50%")
+
+    conn = get_conn()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "UPDATE outfit_images SET scale = ?, offset_x = ?, offset_y = ? "
+                "WHERE outfit_id = ? AND angle = ?",
+                (scale, offset_x, offset_y, outfit_id, angle),
+            )
+            if cursor.rowcount == 0:
+                raise NotFoundError("这个角度还没有上身图，无法微调")
+    except sqlite3.Error as exc:
+        logger.exception("保存上身图微调失败 id=%s angle=%s", outfit_id, angle)
+        raise ServiceError("保存微调失败，请重试") from exc
+    finally:
+        conn.close()
+
+    return get_outfit(outfit_id)["images"][angle]
 
 
 def _validate_items(raw_items: list) -> list[tuple]:

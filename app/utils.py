@@ -13,6 +13,7 @@ from .config import (
     GARMENTS_DIR,
     LOG_DIR,
     MODEL_DIR,
+    OUTFITS_DIR,
     TMP_DIR,
 )
 
@@ -57,7 +58,15 @@ def setup_logging(level: int = logging.INFO) -> None:
 
 def ensure_dirs() -> None:
     """创建运行所需的数据目录（幂等）。"""
-    for directory in (DATA_DIR, GARMENTS_DIR, MODEL_DIR, EXPORTS_DIR, TMP_DIR, LOG_DIR):
+    for directory in (
+        DATA_DIR,
+        GARMENTS_DIR,
+        OUTFITS_DIR,
+        MODEL_DIR,
+        EXPORTS_DIR,
+        TMP_DIR,
+        LOG_DIR,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
 
 

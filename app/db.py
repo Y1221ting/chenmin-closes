@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS outfit_items (
     FOREIGN KEY (garment_id) REFERENCES garments(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS outfit_images (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    outfit_id  INTEGER NOT NULL,
+    angle      TEXT    NOT NULL,
+    path       TEXT    NOT NULL,
+    width      INTEGER,
+    height     INTEGER,
+    scale      REAL    NOT NULL DEFAULT 1.0,
+    offset_x   REAL    NOT NULL DEFAULT 0,
+    offset_y   REAL    NOT NULL DEFAULT 0,
+    FOREIGN KEY (outfit_id) REFERENCES outfits(id) ON DELETE CASCADE,
+    UNIQUE (outfit_id, angle)
+);
+
 CREATE TABLE IF NOT EXISTS scenes (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT    NOT NULL UNIQUE,
@@ -85,6 +99,7 @@ CREATE TABLE IF NOT EXISTS scenes (
 CREATE INDEX IF NOT EXISTS idx_garments_category ON garments(category);
 CREATE INDEX IF NOT EXISTS idx_images_garment    ON garment_images(garment_id);
 CREATE INDEX IF NOT EXISTS idx_items_outfit_view ON outfit_items(outfit_id, view);
+CREATE INDEX IF NOT EXISTS idx_outfit_images      ON outfit_images(outfit_id);
 """
 
 BUILTIN_SCENES = [

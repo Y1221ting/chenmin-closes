@@ -41,6 +41,7 @@ LOG_DIR = Path(_log_override).expanduser() if _log_override else app_dir() / "lo
 DB_PATH = DATA_DIR / "wardrobe.db"
 
 GARMENTS_DIR = DATA_DIR / "garments"
+OUTFITS_DIR = DATA_DIR / "outfits"
 MODEL_DIR = DATA_DIR / "model"
 EXPORTS_DIR = DATA_DIR / "exports"
 TMP_DIR = DATA_DIR / "tmp"

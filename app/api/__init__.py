@@ -34,6 +34,8 @@ def build_router() -> Router:
     router.put("/api/outfits/{id}")(outfits.update_outfit)
     router.delete("/api/outfits/{id}")(outfits.delete_outfit)
     router.put("/api/outfits/{id}/items")(outfits.save_items)
+    router.post("/api/outfits/{id}/images")(outfits.upload_image)
+    router.put("/api/outfits/{id}/images/{angle}")(outfits.adjust_image)
 
     router.post("/api/export")(media.export_png)
     router.post("/api/exports/open")(media.open_exports)

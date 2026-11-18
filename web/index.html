@@ -122,6 +122,7 @@
           </div>
           <div class="topbar__actions">
             <span id="save-status" class="save-status">已保存</span>
+            <button id="btn-worn" class="btn btn--ghost" type="button">上身展示</button>
             <button id="btn-export" class="btn btn--ghost" type="button">导出图片</button>
             <button id="btn-outfit-delete" class="btn btn--ghost btn--danger" type="button">删除</button>
           </div>
@@ -180,6 +181,44 @@
             <div class="panel__section panel__hint">
               点击左侧衣服添加到画布<br>
               拖动移动 · 滚轮缩放 · Delete 删除
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= 搭配上身展示 ================= -->
+      <section class="page" id="page-worn" hidden>
+        <header class="topbar">
+          <div class="topbar__heading">
+            <button class="btn btn--link" id="btn-worn-back" type="button">← 返回搭配</button>
+            <h1 class="topbar__title" id="worn-title">上身展示</h1>
+          </div>
+          <div class="topbar__actions">
+            <span class="save-status" id="worn-count"></span>
+          </div>
+        </header>
+
+        <div class="worn-layout">
+          <div class="worn-stage">
+            <div class="rotate-view" id="worn-view" hidden>
+              <div class="rotate-view__frame" id="worn-frame"></div>
+              <div class="rotate-view__dots" id="worn-dots"></div>
+              <p class="rotate-view__hint" id="worn-hint"></p>
+            </div>
+            <div class="worn-empty" id="worn-empty">
+              <p class="worn-empty__title">还没有上身图</p>
+              <p class="worn-empty__text">
+                先在豆包生成整套上身图（纯白背景），<br>
+                再在右侧按角度上传。上传后会永久保存在本机。
+              </p>
+            </div>
+          </div>
+
+          <aside class="worn-panel">
+            <div class="panel__section">
+              <h3 class="panel__title">上身图</h3>
+              <p class="panel__hint">按角度上传，正面必传。支持 JPG / PNG。</p>
+              <div id="worn-angle-list"></div>
             </div>
           </aside>
         </div>
@@ -306,6 +345,7 @@
   <script src="/js/wardrobe.js"></script>
   <script src="/js/outfits.js"></script>
   <script src="/js/outfit-editor.js"></script>
+  <script src="/js/outfit-worn.js"></script>
   <script src="/js/detail.js"></script>
   <script src="/js/garment-form.js"></script>
   <script src="/js/app.js"></script>

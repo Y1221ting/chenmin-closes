@@ -268,6 +268,39 @@ def main() -> int:
         failures += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] 搭配封面应用了裁切")
 
+        # 9. 搭配上身图
+        status, _ = call(
+            "POST", f"{base}/api/outfits/{outfit_id}/images?angle=front",
+            make_png(600, 900), "image/png",
+        )
+        ok = status == 200
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 上传搭配上身图")
+
+        outfits_html2 = dump_dom(browser, base + "/#outfits", profile)
+        ok = 'class="outfit-worn-cover"' in outfits_html2 and "outfit-badge" in outfits_html2
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 搭配库封面使用上身图")
+
+        worn_html = dump_dom(browser, f"{base}/#outfit/{outfit_id}/worn", profile)
+        for needle, label in [
+            ('id="worn-view"', "上身旋转视图"),
+            ('id="worn-angle-list"', "上身角度列表"),
+            ("上身图", "上身图标题"),
+        ]:
+            ok = needle in worn_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+
+        worn_images = worn_html.count('class="rotate-view__img"')
+        ok = worn_images == 1
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 上身旋转视图挂载 1 张图（实际 {worn_images}）")
+
+        ok = "上身展示" in editor_html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 编辑器有上身展示按钮")
+
         # 8. 导出接口
         status, export_resp = call(
             "POST", base + "/api/export?name=UI%E6%90%AD%E9%85%8D",

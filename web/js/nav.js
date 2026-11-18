@@ -1,8 +1,14 @@
-/* 页面切换：衣柜 / 搭配库 / 搭配编辑 / 衣服详情，用 hash 记录位置。 */
+/* 页面切换：衣柜 / 搭配库 / 搭配编辑 / 上身展示 / 衣服详情，用 hash 记录位置。 */
 (function (App) {
   'use strict';
 
-  const PAGES = ['page-wardrobe', 'page-outfits', 'page-outfit', 'page-garment'];
+  const PAGES = [
+    'page-wardrobe',
+    'page-outfits',
+    'page-outfit',
+    'page-worn',
+    'page-garment',
+  ];
   let ready = false;
 
   function showPage(pageId) {
@@ -14,7 +20,10 @@
       .classList.toggle('is-active', pageId === 'page-wardrobe' || pageId === 'page-garment');
     document
       .getElementById('nav-outfits')
-      .classList.toggle('is-active', pageId === 'page-outfits' || pageId === 'page-outfit');
+      .classList.toggle(
+        'is-active',
+        pageId === 'page-outfits' || pageId === 'page-outfit' || pageId === 'page-worn'
+      );
   }
 
   function navigate(hash) {
@@ -37,6 +46,10 @@
     navigate(`#outfit/${id}`);
   }
 
+  function toOutfitWorn(id) {
+    navigate(`#outfit/${id}/worn`);
+  }
+
   function toGarment(id) {
     navigate(`#garment/${id}`);
   }
@@ -46,6 +59,11 @@
     const hash = location.hash || '#wardrobe';
     let match;
 
+    if ((match = hash.match(/^#outfit\/(\d+)\/worn$/))) {
+      showPage('page-worn');
+      App.outfitWorn.load(Number(match[1]));
+      return;
+    }
     if ((match = hash.match(/^#garment\/(\d+)$/))) {
       showPage('page-garment');
       App.detail.load(Number(match[1]));
@@ -71,5 +89,13 @@
     ready = true;
   }
 
-  App.nav = { init, toWardrobe, toOutfits, toOutfit, toGarment, handleRoute };
+  App.nav = {
+    init,
+    toWardrobe,
+    toOutfits,
+    toOutfit,
+    toOutfitWorn,
+    toGarment,
+    handleRoute,
+  };
 })(window.App = window.App || {});

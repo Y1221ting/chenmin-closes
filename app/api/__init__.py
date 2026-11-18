@@ -1,0 +1,30 @@
+"""接口注册：所有路由统一在这里挂载。"""
+
+from __future__ import annotations
+
+from ..config import APP_NAME, APP_VERSION
+from ..router import Request, Router
+from . import garments, meta
+
+
+def _health(_req: Request) -> tuple[int, dict]:
+    return 200, {"ok": True, "data": {"name": APP_NAME, "version": APP_VERSION}}
+
+
+def build_router() -> Router:
+    """构建全部接口路由。"""
+    router = Router()
+
+    router.get("/api/health")(_health)
+    router.get("/api/meta")(meta.get_meta)
+
+    router.get("/api/garments")(garments.list_garments)
+    router.post("/api/garments")(garments.create_garment)
+    router.get("/api/garments/{id}")(garments.get_garment)
+    router.put("/api/garments/{id}")(garments.update_garment)
+    router.delete("/api/garments/{id}")(garments.delete_garment)
+    router.post("/api/garments/{id}/images")(garments.upload_image)
+
+    router.post("/api/scenes")(meta.add_scene)
+
+    return router

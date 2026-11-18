@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人衣柜</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231a1a1a'/><text x='16' y='22' font-size='17' font-family='sans-serif' fill='white' text-anchor='middle'>W</text></svg>">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/wardrobe.css">
+  <link rel="stylesheet" href="/css/detail.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <span class="sidebar__mark">W</span>
+        <span class="sidebar__name">个人衣柜</span>
+      </div>
+      <nav class="sidebar__nav">
+        <button class="nav-item is-active" type="button" id="nav-wardrobe">衣柜</button>
+        <button class="nav-item" type="button" disabled>搭配<span class="nav-item__soon">即将</span></button>
+        <button class="nav-item" type="button" disabled>设置<span class="nav-item__soon">即将</span></button>
+      </nav>
+      <div class="sidebar__foot" id="app-version"></div>
+    </aside>
+
+    <main class="main">
+      <!-- ================= 衣柜页 ================= -->
+      <section class="page" id="page-wardrobe">
+        <header class="topbar">
+          <div class="topbar__heading">
+            <h1 class="topbar__title">衣柜</h1>
+            <p class="topbar__sub" id="wardrobe-count">正在加载…</p>
+          </div>
+          <div class="topbar__actions">
+            <input id="search-input" class="input input--search" type="search"
+                   placeholder="搜索名称…" autocomplete="off">
+            <button id="btn-add" class="btn btn--primary" type="button">＋ 添加衣服</button>
+          </div>
+        </header>
+
+        <div class="filters">
+          <div class="filters__row" id="category-filters"></div>
+          <div class="filters__row filters__row--secondary">
+            <select id="filter-color" class="select">
+              <option value="">颜色</option>
+            </select>
+            <select id="filter-season" class="select">
+              <option value="">季节</option>
+            </select>
+            <select id="filter-scene" class="select">
+              <option value="">场合</option>
+            </select>
+            <button id="btn-clear-filters" class="btn btn--link" type="button" hidden>清除筛选</button>
+          </div>
+        </div>
+
+        <section class="grid" id="wardrobe-grid"></section>
+
+        <section class="empty" id="empty-state" hidden>
+          <p class="empty__title">衣柜还是空的</p>
+          <p class="empty__text">
+            把衣服拍成正面、侧面、背面三张透明背景图，<br>
+            用 AI 抠好图后，就可以放进来了。
+          </p>
+          <button class="btn btn--primary" id="btn-add-empty" type="button">添加第一件衣服</button>
+        </section>
+
+        <section class="empty" id="filter-empty" hidden>
+          <p class="empty__title">没有符合条件的衣服</p>
+          <p class="empty__text">换个筛选条件试试。</p>
+          <button class="btn btn--ghost" id="btn-clear-empty" type="button">清除筛选</button>
+        </section>
+      </section>
+
+      <!-- ================= 衣服详情页 ================= -->
+      <section class="page" id="page-garment" hidden>
+        <header class="topbar">
+          <div class="topbar__heading">
+            <button class="btn btn--link" id="btn-back" type="button">← 返回衣柜</button>
+            <h1 class="topbar__title" id="detail-name">衣服</h1>
+          </div>
+          <div class="topbar__actions">
+            <button class="btn btn--ghost" id="btn-edit" type="button">编辑信息</button>
+            <button class="btn btn--ghost btn--danger" id="btn-delete-garment" type="button">删除</button>
+          </div>
+        </header>
+
+        <div class="detail">
+          <div class="detail__stage">
+            <div class="rotate-view" id="rotate-view" hidden>
+              <div class="rotate-view__frame" id="rotate-frame"></div>
+              <div class="rotate-view__dots" id="rotate-dots"></div>
+              <p class="rotate-view__hint" id="rotate-hint">按住左右拖动查看其他角度 · 双击回正</p>
+            </div>
+            <div class="detail__placeholder" id="detail-placeholder">还没有角度图</div>
+          </div>
+
+          <aside class="detail__panel">
+            <div id="detail-info" class="info-list"></div>
+
+            <div class="detail__section">
+              <h3 class="detail__section-title">角度图</h3>
+              <div class="angle-list" id="angle-list"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 添加 / 编辑衣服抽屉 -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer__backdrop" data-close></div>
+    <form class="drawer__panel" id="garment-form" novalidate>
+      <header class="drawer__head">
+        <h2 class="drawer__title" id="drawer-title">添加衣服</h2>
+        <button class="icon-btn" type="button" data-close aria-label="关闭">✕</button>
+      </header>
+
+      <div class="drawer__body">
+        <div class="field">
+          <span class="field__label">角度图<span class="field__hint" id="upload-hint">正面必填，侧面和背面可稍后补</span></span>
+          <div class="uploads">
+            <label class="upload" data-angle="front">
+              <input type="file" accept="image/png,image/webp" hidden>
+              <span class="upload__preview" data-preview></span>
+              <span class="upload__label">正面<em>必填</em></span>
+            </label>
+            <label class="upload" data-angle="side">
+              <input type="file" accept="image/png,image/webp" hidden>
+              <span class="upload__preview" data-preview></span>
+              <span class="upload__label">侧面</span>
+            </label>
+            <label class="upload" data-angle="back">
+              <input type="file" accept="image/png,image/webp" hidden>
+              <span class="upload__preview" data-preview></span>
+              <span class="upload__label">背面</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="name-input">名称<span class="field__required">必填</span></label>
+          <input id="name-input" class="input" type="text" maxlength="60"
+                 placeholder="例如：米色针织开衫" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <span class="field__label">类别<span class="field__required">必选</span></span>
+          <div class="chips" data-chips="category"></div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">颜色</span>
+          <div class="chips" data-chips="color"></div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">适合季节<span class="field__hint">可多选</span></span>
+          <div class="chips" data-chips="season"></div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">适合场合<span class="field__hint">可多选</span></span>
+          <div class="chips" data-chips="occasion"></div>
+        </div>
+      </div>
+
+      <footer class="drawer__foot">
+        <button class="btn btn--ghost" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="submit" id="btn-save">保存</button>
+      </footer>
+    </form>
+  </div>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/nav.js"></script>
+  <script src="/js/rotate-math.js"></script>
+  <script src="/js/rotate-view.js"></script>
+  <script src="/js/wardrobe.js"></script>
+  <script src="/js/detail.js"></script>
+  <script src="/js/garment-form.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+/* 衣柜页：筛选栏、网格、卡片、空状态。 */
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-1) var(--space-4) var(--space-4);
+}
+
+.card {
+  position: relative;
+  cursor: pointer;
+  animation: card-in 260ms var(--ease) both;
+}
+
+.card__delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: var(--shadow-card);
+  transition: opacity var(--duration) var(--ease),
+              background var(--duration) var(--ease),
+              color var(--duration) var(--ease);
+}
+
+.card:hover .card__delete,
+.card.is-confirming .card__delete {
+  opacity: 1;
+}
+
+.card__delete:hover {
+  color: var(--danger);
+}
+
+.card.is-confirming .card__delete {
+  padding: 0 12px;
+  background: var(--danger);
+  color: #ffffff;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.card__media {
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  overflow: hidden;
+  transition: background var(--duration) var(--ease);
+}
+
+.card:hover .card__media {
+  background: var(--surface-hover);
+}
+
+.card__media img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 260ms var(--ease);
+}
+
+.card:hover .card__media img {
+  transform: scale(1.04);
+}
+
+.card__placeholder {
+  font-size: var(--font-size-xs);
+  color: var(--text-faint);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.card__body {
+  padding: 10px 2px 0;
+}
+
+.card__name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card__meta {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.empty[hidden] {
+  display: none;
+}
+
+.empty__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.empty__text {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.9;
+}

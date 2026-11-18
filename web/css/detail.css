@@ -66,8 +66,9 @@
   margin: auto;
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  /* 预留空间，让微调放大到 118% 时不会被裁切 */
+  max-width: 94%;
+  max-height: 84%;
   object-fit: contain;
   transform-origin: center center;
   will-change: transform, opacity;

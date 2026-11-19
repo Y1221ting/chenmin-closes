@@ -3,10 +3,8 @@
   'use strict';
 
   const CLOTH_CATEGORIES = ['top', 'outer', 'bottom', 'dress'];
-  const SHELF_CATEGORIES = ['bag'];
-  const SHOE_CATEGORY = 'shoes';
   const ACCESSORY_CATEGORY = 'accessory';
-  const ACCESSORY_STYLES = ['hang', 'bag', 'flat'];
+  const ACCESSORY_STYLES = ['hang', 'bag', 'flat', 'drawer'];
 
   const state = {
     meta: null,
@@ -21,6 +19,7 @@
 
   const els = {};
   let drag = null;
+  let cabinetDrag = null;
 
   function cache() {
     els.rack = document.getElementById('wardrobe-rack');
@@ -326,160 +325,6 @@
     return section;
   }
 
-  function shelfItem(item) {
-    const el = document.createElement('div');
-    el.className = 'shelf-item';
-    el.dataset.id = item.id;
-    el.tabIndex = 0;
-    el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', item.name);
-
-    const suffix = imageVersion(item);
-    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
-    const categoryLabels = labelsOf('categories');
-    const colorLabels = labelsOf('colors');
-    const metaText = [
-      categoryLabels[item.category] || '',
-      item.color ? colorLabels[item.color] || '' : '',
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    el.setAttribute('aria-label', metaText ? `${item.name} · ${metaText}` : item.name);
-
-    el.innerHTML = `
-      ${src ? `<img src="${src}" alt="" loading="lazy">` : '<span class="shelf-item__empty">无图</span>'}
-      <span class="shelf-item__name">${escape(item.name)}</span>
-      <span class="shelf-item__meta">${escape(metaText)}</span>
-      <button class="shelf-item__delete" type="button" title="删除">✕</button>
-    `;
-
-    el.addEventListener('click', (event) => {
-      if (event.target.closest('.shelf-item__delete')) return;
-      openGarment(item);
-    });
-    el.addEventListener('keydown', (event) => {
-      if (event.target !== el) return;
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openGarment(item);
-      }
-    });
-    el.querySelector('.shelf-item__delete').addEventListener('click', (event) => {
-      handleDelete(event, item);
-    });
-
-    return el;
-  }
-
-  function shelfSection(items, label) {
-    const section = document.createElement('section');
-    section.className = 'shelf-section';
-    section.innerHTML = `
-      <div class="rack-section__head">
-        <span class="rack-section__label">${escape(label)}</span>
-        <span class="rack-section__count">${items.length}</span>
-      </div>
-      <div class="shelf">
-        <div class="shelf__items"></div>
-        <div class="shelf__line"></div>
-      </div>
-    `;
-
-    const container = section.querySelector('.shelf__items');
-    items.forEach((item) => container.appendChild(shelfItem(item)));
-    return section;
-  }
-
-  // ---------------------------------------------------------------- 鞋柜
-
-  function shoeItem(item) {
-    const el = document.createElement('div');
-    el.className = 'shoe-item';
-    el.dataset.id = item.id;
-    el.tabIndex = 0;
-    el.setAttribute('role', 'button');
-
-    const categoryLabels = labelsOf('categories');
-    const colorLabels = labelsOf('colors');
-    const metaText = [
-      categoryLabels[item.category] || '',
-      item.color ? colorLabels[item.color] || '' : '',
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    const labelText = metaText ? `${item.name} · ${metaText}` : item.name;
-    el.setAttribute('aria-label', labelText);
-
-    const suffix = imageVersion(item);
-    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
-
-    el.innerHTML = `
-      ${src ? `<img class="shoe-img" src="${src}" alt="" loading="lazy">` : '<span class="shoe-missing">无图</span>'}
-      <span class="shoe-tag">${escape(labelText)}</span>
-      <button class="shoe-item__delete" type="button" title="删除">✕</button>
-    `;
-
-    el.addEventListener('click', (event) => {
-      if (event.target.closest('.shoe-item__delete')) return;
-      openGarment(item);
-    });
-    el.addEventListener('keydown', (event) => {
-      if (event.target !== el) return;
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openGarment(item);
-      }
-    });
-    el.querySelector('.shoe-item__delete').addEventListener('click', (event) => {
-      handleDelete(event, item);
-    });
-
-    return el;
-  }
-
-  function shoeSection(items) {
-    const section = document.createElement('section');
-    section.className = 'shoe-section';
-
-    const half = Math.ceil(items.length / 2);
-    const topItems = items.slice(0, half);
-    const bottomItems = items.slice(half);
-
-    section.innerHTML = `
-      <div class="rack-section__head">
-        <span class="rack-section__label">鞋柜</span>
-        <span class="rack-section__count">${items.length} 双</span>
-      </div>
-      <div class="shoe-rack">
-        <div class="shoe-track">
-          <div class="shoe-shelf shoe-shelf--top">
-            <div class="shoe-items"></div>
-          </div>
-          <div class="shoe-shelf shoe-shelf--bottom">
-            <div class="shoe-items"></div>
-          </div>
-          <div class="shoe-board shoe-board--top" aria-hidden="true"></div>
-          <div class="shoe-board shoe-board--bottom" aria-hidden="true"></div>
-        </div>
-      </div>
-    `;
-
-    const topBox = section.querySelector('.shoe-shelf--top .shoe-items');
-    topItems.forEach((item) => topBox.appendChild(shoeItem(item)));
-
-    const bottomShelf = section.querySelector('.shoe-shelf--bottom');
-    const bottomBoard = section.querySelector('.shoe-board--bottom');
-    if (bottomItems.length) {
-      const bottomBox = bottomShelf.querySelector('.shoe-items');
-      bottomItems.forEach((item) => bottomBox.appendChild(shoeItem(item)));
-    } else {
-      bottomShelf.hidden = true;
-      bottomBoard.hidden = true;
-    }
-
-    return section;
-  }
-
   // ---------------------------------------------------------------- 配饰收纳
 
   function accessoryStyle(item) {
@@ -570,16 +415,19 @@
   }
 
   function accessorySection(items) {
+    const visible = items.filter((item) => accessoryStyle(item) !== 'drawer');
+    if (!visible.length) return null;
+
     const section = document.createElement('section');
     section.className = 'accessory-section';
 
-    const hangItems = items.filter((item) => accessoryStyle(item) === 'hang');
-    const shelfItems = items.filter((item) => accessoryStyle(item) !== 'hang');
+    const hangItems = visible.filter((item) => accessoryStyle(item) === 'hang');
+    const shelfItems = visible.filter((item) => accessoryStyle(item) !== 'hang');
 
     section.innerHTML = `
       <div class="rack-section__head">
         <span class="rack-section__label">配饰</span>
-        <span class="rack-section__count">${items.length}</span>
+        <span class="rack-section__count">${visible.length}</span>
       </div>
       <div class="accessory-zone">
         <div class="accessory-row accessory-row--hang" ${hangItems.length ? '' : 'hidden'}>
@@ -603,6 +451,384 @@
     shelfItems.forEach((item) => shelfBox.appendChild(accessoryItem(item)));
 
     return section;
+  }
+
+  // ---------------------------------------------------------------- 衣帽柜
+
+  function zoneOfItem(item) {
+    if (['shoes', 'bag', 'hat'].includes(item.category)) return item.category;
+    if (item.category === 'accessory' && item.display_style === 'drawer') {
+      return 'drawer';
+    }
+    return null;
+  }
+
+  function cabinetSlotOf(item) {
+    const slot = Number(item.cabinet_slot);
+    return Number.isInteger(slot) && slot >= 0 ? slot : null;
+  }
+
+  function slotsOf(items) {
+    const map = new Map();
+    items.forEach((item) => {
+      const slot = cabinetSlotOf(item);
+      if (slot !== null) map.set(slot, item);
+    });
+    return map;
+  }
+
+  function maxCabinetSlot(items) {
+    let max = -1;
+    items.forEach((item) => {
+      const slot = cabinetSlotOf(item);
+      if (slot !== null && slot > max) max = slot;
+    });
+    return max;
+  }
+
+  function cabinetLabel(item) {
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return metaText ? `${item.name} · ${metaText}` : item.name;
+  }
+
+  function cabinetItem(item, zone, slot) {
+    const el = document.createElement('div');
+    el.className = `closet-item closet-item--${zone}`;
+    el.dataset.id = item.id;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    const label = cabinetLabel(item);
+    el.setAttribute('aria-label', label);
+
+    const suffix = imageVersion(item);
+    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
+    el.innerHTML = `
+      ${src ? `<img class="closet-item__img" src="${src}" alt="" loading="lazy">` : '<span class="closet-item__missing">无图</span>'}
+      <span class="closet-item__tag">${escape(label)}</span>
+      <button class="closet-item__delete" type="button" title="删除">✕</button>
+    `;
+
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('.closet-item__delete')) return;
+      if (el._dragEndedAt && Date.now() - el._dragEndedAt < 300) return;
+      openGarment(item);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openGarment(item);
+      }
+    });
+    el.querySelector('.closet-item__delete').addEventListener('click', (event) => {
+      handleDelete(event, item);
+    });
+    el.addEventListener('pointerdown', (event) => {
+      beginCabinetDrag(event, el, item, zone, slot);
+    });
+
+    return el;
+  }
+
+  function cabinetCell(zone, slot, item) {
+    const cell = document.createElement('div');
+    cell.className = 'closet-cell';
+    cell.dataset.zone = zone;
+    cell.dataset.slot = slot;
+    if (!item) {
+      cell.classList.add('is-empty');
+      return cell;
+    }
+    cell.appendChild(cabinetItem(item, zone, slot));
+    return cell;
+  }
+
+  function fillCabinetGrid(container, zone, total, map) {
+    container.innerHTML = '';
+    for (let slot = 0; slot < total; slot += 1) {
+      container.appendChild(cabinetCell(zone, slot, map.get(slot)));
+    }
+  }
+
+  function drawerElement(index, map) {
+    const drawer = document.createElement('div');
+    drawer.className = 'closet-drawer';
+    drawer.dataset.index = index;
+
+    const count = [0, 1, 2].filter((offset) => map.has(index * 3 + offset)).length;
+    drawer.innerHTML = `
+      <div class="closet-drawer__tray">
+        <div class="closet-drawer__cells"></div>
+      </div>
+      <button class="closet-drawer__front" type="button" data-panel="drawer-${index}"
+              aria-label="打开第 ${index + 1} 个抽屉">
+        <span class="closet-drawer__handle"></span>
+        ${count ? `<span class="closet-drawer__count">${count} 件</span>` : ''}
+      </button>
+    `;
+
+    const cells = drawer.querySelector('.closet-drawer__cells');
+    for (let offset = 0; offset < 3; offset += 1) {
+      const slot = index * 3 + offset;
+      cells.appendChild(cabinetCell('drawer', slot, map.get(slot)));
+    }
+    return drawer;
+  }
+
+  function cabinetSection({ shoes, hats, bags, drawers }) {
+    const shoeRows = Math.max(4, Math.ceil((maxCabinetSlot(shoes) + 1) / 2));
+    const hatRows = Math.max(1, Math.ceil((maxCabinetSlot(hats) + 1) / 3));
+    const bagRows = Math.max(2, Math.ceil((maxCabinetSlot(bags) + 1) / 3));
+    const drawerRows = Math.max(1, Math.ceil((maxCabinetSlot(drawers) + 1) / 9));
+    const drawerCount = drawerRows * 3;
+
+    const gap = 6;
+    const shoeH = shoeRows * 150 + (shoeRows - 1) * gap;
+    const hatH = hatRows * 120 + (hatRows - 1) * gap;
+    const bagH = bagRows * 240 + (bagRows - 1) * gap;
+    const rightH = hatH + gap + bagH;
+    const middleH = Math.max(shoeH, rightH);
+    const leftFill = middleH - shoeH;
+    const rightFill = middleH - rightH;
+    const total = shoes.length + hats.length + bags.length + drawers.length;
+
+    const section = document.createElement('section');
+    section.className = 'closet-section';
+    section.innerHTML = `
+      <div class="rack-section__head">
+        <span class="rack-section__label">衣帽柜</span>
+        <span class="rack-section__count">${total ? `${total} 件` : '空柜'}</span>
+      </div>
+      <div class="closet" data-open-panel="">
+        <div class="closet__top">
+          ${[0, 1, 2].map((index) => `
+            <div class="closet-top">
+              <div class="closet-top__inner">
+                <span class="closet-box" aria-hidden="true"></span>
+              </div>
+              <button class="closet-door" type="button" data-panel="door-${index}"
+                      data-hinge="${index === 2 ? 'right' : 'left'}"
+                      aria-label="打开顶柜第 ${index + 1} 扇门">
+                <span class="closet-door__panel">
+                  <span class="closet-door__handle"></span>
+                </span>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="closet__middle">
+          <div class="closet-side closet-side--left">
+            <div class="closet-grid closet-shoes" style="--rows:${shoeRows}"></div>
+            ${leftFill > 0 ? `<div class="closet-fill" style="height:${leftFill}px"></div>` : ''}
+          </div>
+          <div class="closet-side closet-side--right">
+            <div class="closet-grid closet-hats" style="--rows:${hatRows}"></div>
+            <div class="closet-grid closet-bags" style="--rows:${bagRows}"></div>
+            ${rightFill > 0 ? `<div class="closet-fill" style="height:${rightFill}px"></div>` : ''}
+          </div>
+        </div>
+        <div class="closet__drawers"></div>
+      </div>
+    `;
+
+    fillCabinetGrid(section.querySelector('.closet-shoes'), 'shoes', shoeRows * 2, slotsOf(shoes));
+    fillCabinetGrid(section.querySelector('.closet-hats'), 'hat', hatRows * 3, slotsOf(hats));
+    fillCabinetGrid(section.querySelector('.closet-bags'), 'bag', bagRows * 3, slotsOf(bags));
+
+    const drawerBox = section.querySelector('.closet__drawers');
+    const drawerMap = slotsOf(drawers);
+    for (let index = 0; index < drawerCount; index += 1) {
+      drawerBox.appendChild(drawerElement(index, drawerMap));
+    }
+
+    section.querySelectorAll('[data-panel]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleCabinetPanel(section, button.dataset.panel);
+      });
+    });
+
+    return section;
+  }
+
+  function toggleCabinetPanel(section, name) {
+    const closet = section.querySelector('.closet');
+    const current = closet.dataset.openPanel || '';
+    const next = current === name ? '' : name;
+    closet.dataset.openPanel = next;
+    section.querySelectorAll('[data-panel]').forEach((button) => {
+      button.classList.toggle('is-open', button.dataset.panel === next);
+    });
+    section.querySelectorAll('.closet-drawer').forEach((drawer) => {
+      drawer.classList.toggle(
+        'is-open',
+        `drawer-${drawer.dataset.index}` === next
+      );
+    });
+    section.classList.toggle('has-open-drawer', next.startsWith('drawer-'));
+  }
+
+  function closeCabinetPanels() {
+    document.querySelectorAll('.closet-section').forEach((section) => {
+      const closet = section.querySelector('.closet');
+      if (!closet || !closet.dataset.openPanel) return;
+      toggleCabinetPanel(section, closet.dataset.openPanel);
+    });
+  }
+
+  function findClosetDrop(event, zone) {
+    const cells = document.querySelectorAll('.closet-cell');
+    for (const cell of cells) {
+      if (cell.dataset.zone !== zone) continue;
+      const drawer = cell.closest('.closet-drawer');
+      if (drawer && !drawer.classList.contains('is-open')) continue;
+      const rect = cell.getBoundingClientRect();
+      if (
+        event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= rect.top && event.clientY <= rect.bottom
+      ) {
+        return { type: 'cell', slot: Number(cell.dataset.slot), cell };
+      }
+    }
+    if (zone === 'drawer') {
+      const fronts = document.querySelectorAll('.closet-drawer__front');
+      for (const front of fronts) {
+        const rect = front.getBoundingClientRect();
+        if (
+          event.clientX >= rect.left && event.clientX <= rect.right &&
+          event.clientY >= rect.top && event.clientY <= rect.bottom
+        ) {
+          const drawer = front.closest('.closet-drawer');
+          return { type: 'drawer', index: Number(drawer.dataset.index), front };
+        }
+      }
+    }
+    return null;
+  }
+
+  function beginCabinetDrag(event, el, item, zone, slot) {
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('.closet-item__delete')) return;
+    cabinetDrag = {
+      el,
+      item,
+      zone,
+      slot,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+    try {
+      el.setPointerCapture(event.pointerId);
+    } catch (ignore) {
+      /* 指针捕获失败时仍可拖动 */
+    }
+  }
+
+  function onCabinetDragMove(event) {
+    if (!cabinetDrag || event.pointerId !== cabinetDrag.pointerId) return;
+    const dx = event.clientX - cabinetDrag.startX;
+    const dy = event.clientY - cabinetDrag.startY;
+    if (!cabinetDrag.moved) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      cabinetDrag.moved = true;
+      cabinetDrag.el.classList.add('is-dragging');
+      document.body.classList.add('is-cabinet-dragging');
+    }
+
+    document
+      .querySelectorAll('.closet-cell.is-drop-target, .closet-drawer__front.is-drop-target')
+      .forEach((node) => node.classList.remove('is-drop-target'));
+    const drop = findClosetDrop(event, cabinetDrag.zone);
+    if (drop) {
+      (drop.cell || drop.front).classList.add('is-drop-target');
+    }
+  }
+
+  async function onCabinetDragUp(event) {
+    if (!cabinetDrag || event.pointerId !== cabinetDrag.pointerId) return;
+    const { el, item, zone, slot, pointerId, moved } = cabinetDrag;
+    cabinetDrag = null;
+    try {
+      el.releasePointerCapture(pointerId);
+    } catch (ignore) {
+      /* 已经释放时忽略 */
+    }
+    el.classList.remove('is-dragging');
+    document.body.classList.remove('is-cabinet-dragging');
+    document
+      .querySelectorAll('.closet-cell.is-drop-target, .closet-drawer__front.is-drop-target')
+      .forEach((node) => node.classList.remove('is-drop-target'));
+
+    if (!moved) return;
+    el._dragEndedAt = Date.now();
+
+    const drop = findClosetDrop(event, zone);
+    if (!drop) return;
+
+    let targetSlot = drop.slot;
+    let targetDrawer = null;
+    if (drop.type === 'drawer') {
+      targetDrawer = drop.index;
+      const used = new Set(
+        state.items
+          .filter((candidate) => zoneOfItem(candidate) === 'drawer')
+          .map((candidate) => cabinetSlotOf(candidate))
+      );
+      targetSlot = [0, 1, 2]
+        .map((offset) => targetDrawer * 3 + offset)
+        .find((candidate) => !used.has(candidate));
+      if (targetSlot === undefined) {
+        App.ui.toast('这个抽屉已经满了', 'error');
+        return;
+      }
+    }
+
+    if (targetSlot === slot) return;
+
+    const occupant = state.items.find(
+      (candidate) =>
+        candidate.id !== item.id &&
+        zoneOfItem(candidate) === zone &&
+        cabinetSlotOf(candidate) === targetSlot
+    );
+
+    const before = [
+      { item, slot: cabinetSlotOf(item) },
+      ...(occupant ? [{ item: occupant, slot: cabinetSlotOf(occupant) }] : []),
+    ];
+    const payload = [{ id: item.id, slot: targetSlot }];
+    if (occupant) payload.push({ id: occupant.id, slot });
+
+    item.cabinet_slot = targetSlot;
+    if (occupant) occupant.cabinet_slot = slot;
+
+    try {
+      await App.api.put('/api/garments/cabinet-slots', { items: payload });
+      App.ui.toast('位置已保存');
+      render();
+      if (zone === 'drawer') {
+        const nextSection = els.rack.querySelector('.closet-section');
+        const openIndex = Math.floor(targetSlot / 3);
+        if (nextSection) {
+          toggleCabinetPanel(nextSection, `drawer-${openIndex}`);
+        }
+      }
+    } catch (err) {
+      before.forEach((entry) => {
+        entry.item.cabinet_slot = entry.slot;
+      });
+      App.ui.toast(err.message, 'error');
+      render();
+    }
   }
 
   // ---------------------------------------------------------------- 渲染
@@ -639,28 +865,25 @@
     });
 
     const accessories = grouped[ACCESSORY_CATEGORY] || [];
-    if (accessories.length) {
-      els.rack.appendChild(accessorySection(accessories));
+    const accessorySectionEl = accessorySection(accessories);
+    if (accessorySectionEl) {
+      els.rack.appendChild(accessorySectionEl);
     }
 
-    const shelfCategories = SHELF_CATEGORIES.filter(
-      (category) => (grouped[category] || []).length
-    );
-    const shelfItems = shelfCategories.flatMap(
-      (category) => grouped[category] || []
-    );
-    if (shelfItems.length) {
-      const labels = labelsOf('categories');
-      const label = shelfCategories
-        .map((category) => labels[category] || '')
-        .filter(Boolean)
-        .join(' · ');
-      els.rack.appendChild(shelfSection(shelfItems, label || '包'));
-    }
-
-    const shoes = grouped[SHOE_CATEGORY] || [];
-    if (shoes.length) {
-      els.rack.appendChild(shoeSection(shoes));
+    const closetGroups = {
+      shoes: grouped.shoes || [],
+      hats: grouped.hat || [],
+      bags: grouped.bag || [],
+      drawers: accessories.filter((item) => accessoryStyle(item) === 'drawer'),
+    };
+    const closetCount =
+      closetGroups.shoes.length +
+      closetGroups.hats.length +
+      closetGroups.bags.length +
+      closetGroups.drawers.length;
+    // 没筛选时始终显示完整柜体（空格也保留）；筛选时只在有柜内物品时显示
+    if (!filtered || closetCount) {
+      els.rack.appendChild(cabinetSection(closetGroups));
     }
   }
 
@@ -751,6 +974,14 @@
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragUp);
     window.addEventListener('pointercancel', onDragUp);
+    window.addEventListener('pointermove', onCabinetDragMove);
+    window.addEventListener('pointerup', onCabinetDragUp);
+    window.addEventListener('pointercancel', onCabinetDragUp);
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.closet')) {
+        closeCabinetPanels();
+      }
+    });
 
     updateClearButton();
     load();

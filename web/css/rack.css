@@ -306,7 +306,8 @@ body.is-racking .rack-item {
 .rack-item__delete,
 .shelf-item__delete,
 .accessory-item__delete,
-.shoe-item__delete {
+.shoe-item__delete,
+.closet-item__delete {
   position: absolute;
   z-index: 3;
   width: 24px;
@@ -337,14 +338,17 @@ body.is-racking .rack-item {
 .accessory-item:hover .accessory-item__delete,
 .accessory-item:focus-within .accessory-item__delete,
 .shoe-item:hover .shoe-item__delete,
-.shoe-item:focus-within .shoe-item__delete {
+.shoe-item:focus-within .shoe-item__delete,
+.closet-item:hover .closet-item__delete,
+.closet-item:focus-within .closet-item__delete {
   opacity: 1;
 }
 
 .rack-item__delete:hover,
 .shelf-item__delete:hover,
 .accessory-item__delete:hover,
-.shoe-item__delete:hover {
+.shoe-item__delete:hover,
+.closet-item__delete:hover {
   color: var(--danger);
 }
 

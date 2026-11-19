@@ -149,7 +149,7 @@ def main() -> int:
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}")
 
-        # 2.2 鞋柜与包的隔板
+        # 2.2 衣帽柜：顶柜、鞋格、帽格、包格
         for shoe_name, shoe_color in [
             ("UI 测试运动鞋", "black"),
             ("UI 测试短靴", "brown"),
@@ -174,33 +174,65 @@ def main() -> int:
         call("POST", f"{base}/api/garments/{bag_id}/images?angle=front",
              make_png(), "image/png")
 
+        for hat_name, hat_color in [
+            ("UI 测试贝雷帽", "beige"),
+            ("UI 测试棒球帽", "black"),
+        ]:
+            hat_body = json.dumps(
+                {"name": hat_name, "category": "hat", "color": hat_color},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            _, hat_resp = call("POST", base + "/api/garments", hat_body,
+                               "application/json")
+            hat_id = hat_resp["data"]["id"]
+            call("POST", f"{base}/api/garments/{hat_id}/images?angle=front",
+                 make_png(), "image/png")
+
         html = dump_dom(browser, base + "/", profile)
         for needle, label in [
-            ('class="shoe-section"', "鞋柜独立分区"),
-            ('class="shoe-item"', "鞋柜渲染鞋子"),
-            ('class="shoe-shelf shoe-shelf--top"', "鞋柜上层"),
-            ('class="shoe-shelf shoe-shelf--bottom"', "鞋柜下层"),
-            ('class="shoe-board shoe-board--top"', "鞋柜上层木板"),
-            ('class="shoe-board shoe-board--bottom"', "鞋柜下层木板"),
-            ('class="shoe-tag"', "鞋子悬停标签"),
-            ("鞋柜", "鞋柜标题"),
-            ("2 双", "鞋子数量单位"),
+            ('class="closet-section"', "衣帽柜独立分区"),
+            ('class="closet"', "柜体"),
+            ('class="closet__top"', "顶柜"),
+            ('class="closet-door"', "顶柜门"),
+            ('class="closet-box"', "顶柜收纳盒"),
+            ('class="closet__middle"', "中间格子"),
+            ('class="closet-grid closet-shoes"', "左侧鞋格"),
+            ('class="closet-grid closet-hats"', "右上帽格"),
+            ('class="closet-grid closet-bags"', "右下包格"),
+            ('class="closet__drawers"', "底部抽屉"),
+            ('class="closet-drawer__front"', "抽屉面板"),
+            ('class="closet-drawer__cells"', "抽屉小格"),
+            ('class="closet-item__tag"', "衣帽柜悬停标签"),
+            ('class="closet-item closet-item--shoes"', "鞋子渲染"),
+            ('class="closet-item closet-item--hat"', "帽子渲染"),
+            ('class="closet-item closet-item--bag"', "包渲染"),
             ("UI 测试运动鞋", "鞋子名称显示"),
-            ("UI 测试短靴", "第二双鞋显示"),
-            ('class="shelf-item"', "包仍然在底部隔板"),
-            ('class="shelf-item__meta"', "隔板悬停信息元素"),
-            ("包 · 棕色", "隔板信息包含类别与颜色"),
+            ("UI 测试贝雷帽", "帽子名称显示"),
             ("UI 测试托特包", "包名称显示"),
+            ("包 · 棕色", "包信息包含类别与颜色"),
+            ("帽子 · 米色", "帽子信息包含类别与颜色"),
+            ("衣帽柜", "衣帽柜标题"),
+            ("5 件", "衣帽柜数量"),
         ]:
             ok = needle in html
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
 
-        # 2.3 配饰收纳区：挂杆 / 纸袋 / 平放
+        cell_count = html.count('closet-cell')
+        ok = cell_count >= 26
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 柜子格子数量（实际 {cell_count}）")
+
+        ok = "shoe-section" not in html and "shelf-item" not in html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 旧鞋柜和隔板结构已移除")
+
+        # 2.3 配饰区与抽屉
         for name, style, color in [
             ("UI 测试围巾", "hang", "beige"),
             ("UI 测试手套", "bag", "red"),
             ("UI 测试项链", "flat", "yellow"),
+            ("UI 测试戒指", "drawer", "white"),
         ]:
             body = json.dumps(
                 {
@@ -225,16 +257,27 @@ def main() -> int:
             ('class="accessory-flat"', "平放台面"),
             ('class="accessory-tag"', "常驻小标签"),
             ("UI 测试围巾", "配饰名称显示"),
+            ('class="closet-item closet-item--drawer"', "抽屉配饰渲染"),
+            ("UI 测试戒指", "抽屉配饰名称"),
+            ("1 件", "抽屉数量角标"),
             ('data-chips="display_style"', "表单摆放方式选项"),
             ("摆放方式", "表单摆放方式标签"),
+            ("抽屉", "表单包含抽屉选项"),
+            ("帽子", "表单包含帽子类别"),
         ]:
             ok = needle in html
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
 
-        ok = "鞋包配饰" not in html
+        accessory_count = html.count('accessory-item accessory-item--')
+        ok = accessory_count == 3
         failures += 0 if ok else 1
-        print(f"[{'PASS' if ok else 'FAIL'}] 隔板不再混合鞋和配饰")
+        print(f"[{'PASS' if ok else 'FAIL'}] 配饰区只显示 3 件非抽屉配饰"
+              f"（实际 {accessory_count}）")
+
+        ok = cell_count == html.count('closet-cell')
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 抽屉配饰替换空格，格位总数不变")
 
         # 3. 筛选控件
         for needle, label in [

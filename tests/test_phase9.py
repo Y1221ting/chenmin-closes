@@ -82,7 +82,7 @@ def main() -> int:
     finally:
         conn.close()
 
-    check(version == SCHEMA_VERSION == 7, "数据库版本为 v7", f"实际 {version}")
+    check(version == SCHEMA_VERSION == 8, "数据库版本为 v8", f"实际 {version}")
     check("display_style" in columns, "garments 新增 display_style 字段")
 
     httpd, port = start_server()
@@ -93,11 +93,11 @@ def main() -> int:
         styles = meta["data"]["display_styles"]
         check(status == 200, "读取字典数据")
         check(
-            [item["value"] for item in styles] == ["hang", "bag", "flat"],
-            "字典包含三种摆放方式",
+            [item["value"] for item in styles] == ["hang", "bag", "flat", "drawer"],
+            "字典包含四种摆放方式",
         )
         check(
-            [item["label"] for item in styles] == ["挂杆", "纸袋", "平放"],
+            [item["label"] for item in styles] == ["挂杆", "纸袋", "平放", "抽屉"],
             "摆放方式中文标签正确",
         )
 

@@ -12,10 +12,10 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Iterator
 
-from .config import DB_PATH
+from .config import DB_PATH, cabinet_zone
 from .utils import logger
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS garments (
     updated_at    TEXT,
     deleted_at    TEXT,
     sort_order    INTEGER NOT NULL DEFAULT 0,
-    display_style TEXT    NOT NULL DEFAULT 'hang'
+    display_style TEXT    NOT NULL DEFAULT 'hang',
+    cabinet_slot  INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS garment_images (
@@ -186,6 +187,44 @@ def _ensure_display_style(conn: sqlite3.Connection) -> None:
         logger.info("数据库迁移：garments 新增字段 display_style")
 
 
+def _ensure_cabinet_slot(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上柜子格位，并按分区补齐缺失的格位。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(garments)")}
+    if "cabinet_slot" not in columns:
+        conn.execute("ALTER TABLE garments ADD COLUMN cabinet_slot INTEGER")
+        logger.info("数据库迁移：garments 新增字段 cabinet_slot")
+
+    used = {"shoes": set(), "bag": set(), "hat": set(), "drawer": set()}
+    pending: list[tuple[int, str]] = []
+    rows = conn.execute(
+        "SELECT id, category, display_style, cabinet_slot FROM garments "
+        "WHERE deleted_at IS NULL"
+    ).fetchall()
+
+    for row in rows:
+        zone = cabinet_zone(row["category"], row["display_style"])
+        slot = row["cabinet_slot"]
+        if zone is None:
+            if slot is not None:
+                conn.execute(
+                    "UPDATE garments SET cabinet_slot = NULL WHERE id = ?", (row["id"],)
+                )
+            continue
+        if slot is not None and slot not in used[zone]:
+            used[zone].add(slot)
+        else:
+            pending.append((row["id"], zone))
+
+    for garment_id, zone in pending:
+        slot = 0
+        while slot in used[zone]:
+            slot += 1
+        used[zone].add(slot)
+        conn.execute(
+            "UPDATE garments SET cabinet_slot = ? WHERE id = ?", (slot, garment_id)
+        )
+
+
 def _ensure_item_columns(conn: sqlite3.Connection) -> None:
     """为老版本数据库补上画布单品的遮挡字段。"""
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(outfit_items)")}
@@ -210,6 +249,7 @@ def init_db() -> None:
             _ensure_item_columns(conn)
             _ensure_sort_order(conn)
             _ensure_display_style(conn)
+            _ensure_cabinet_slot(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < SCHEMA_VERSION:
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

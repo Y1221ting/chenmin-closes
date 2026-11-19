@@ -69,6 +69,7 @@ CATEGORIES = [
     ("dress", "连衣裙"),
     ("shoes", "鞋"),
     ("bag", "包"),
+    ("hat", "帽子"),
     ("accessory", "配饰"),
 ]
 
@@ -102,14 +103,27 @@ SEASONS = [
 
 SEASON_LABELS = dict(SEASONS)
 
-# 配饰在首页的摆放方式：挂杆 / 纸袋 / 平放
+# 配饰在首页的摆放方式：挂杆 / 纸袋 / 平放 / 抽屉
 DISPLAY_STYLES = [
     ("hang", "挂杆"),
     ("bag", "纸袋"),
     ("flat", "平放"),
+    ("drawer", "抽屉"),
 ]
 
 DISPLAY_STYLE_LABELS = dict(DISPLAY_STYLES)
+
+# 衣帽柜分区：鞋、包、帽子和抽屉各有一组格位
+CABINET_ZONE_CATEGORIES = {"shoes", "bag", "hat"}
+
+
+def cabinet_zone(category: str, display_style: str | None) -> str | None:
+    """返回物品所在的柜子分区；不进柜子的物品返回 None。"""
+    if category in CABINET_ZONE_CATEGORIES:
+        return category
+    if category == "accessory" and display_style == "drawer":
+        return "drawer"
+    return None
 
 # 角度图顺序：从左到右对应拖动时的帧序列
 ANGLES = ["front", "front45", "side", "back135", "back"]

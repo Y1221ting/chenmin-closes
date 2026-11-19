@@ -80,7 +80,7 @@ def main() -> int:
         status, payload = call("GET", f"{base}/api/meta")
         meta = payload.get("data", {})
         check(status == 200 and payload.get("ok"), "GET /api/meta 返回成功")
-        check(len(meta.get("categories", [])) == 7, "类别数量为 7")
+        check(len(meta.get("categories", [])) == 8, "类别数量为 8")
         check(meta.get("scenes") == ["日常", "社交", "休闲", "正式"], "内置场景标签正确")
 
         # 2. 新建衣服

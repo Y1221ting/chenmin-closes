@@ -21,6 +21,7 @@ def build_router() -> Router:
     router.get("/api/garments")(garments.list_garments)
     router.post("/api/garments")(garments.create_garment)
     router.put("/api/garments/order")(garments.reorder_garments)
+    router.put("/api/garments/cabinet-slots")(garments.save_cabinet_slots)
     router.get("/api/garments/{id}")(garments.get_garment)
     router.put("/api/garments/{id}")(garments.update_garment)
     router.delete("/api/garments/{id}")(garments.delete_garment)

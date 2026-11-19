@@ -52,6 +52,12 @@ def reorder_garments(req: Request) -> tuple[int, dict]:
     return 200, {"ok": True, "data": {"reordered": count}}
 
 
+def save_cabinet_slots(req: Request) -> tuple[int, dict]:
+    payload = req.json()
+    count = garment_service.save_cabinet_slots(payload.get("items", []))
+    return 200, {"ok": True, "data": {"updated": count}}
+
+
 def upload_image(req: Request) -> tuple[int, dict]:
     angle = (req.query.get("angle") or "").strip()
     if angle not in ANGLE_LABELS:

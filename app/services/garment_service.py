@@ -9,6 +9,7 @@ from ..config import (
     COLOR_LABELS,
     DISPLAY_STYLE_LABELS,
     SEASON_LABELS,
+    cabinet_zone,
 )
 from ..db import get_conn
 from ..errors import NotFoundError, ServiceError, ValidationError
@@ -36,10 +37,12 @@ def _validate_meta(data: dict) -> dict:
     if color and color not in COLOR_LABELS:
         raise ValidationError("颜色不在可选范围内")
 
-    # 配饰的摆放方式：挂杆 / 纸袋 / 平放，其他类别保持默认值
+    # 配饰的摆放方式：挂杆 / 纸袋 / 平放 / 抽屉，其他类别保持默认值
     display_style = data.get("display_style") or "hang"
     if display_style not in DISPLAY_STYLE_LABELS:
         raise ValidationError("摆放方式不在可选范围内")
+    if category != "accessory":
+        display_style = "hang"
 
     seasons = [item for item in (data.get("seasons") or []) if item in SEASON_LABELS]
     occasions = [
@@ -60,6 +63,63 @@ def _validate_meta(data: dict) -> dict:
         "purchase_date": data.get("purchase_date") or None,
         "notes": (data.get("notes") or "").strip() or None,
     }
+
+
+def _zone_where(zone: str) -> tuple[str, tuple]:
+    """返回某个柜子分区的 SQL 条件和参数。"""
+    if zone == "drawer":
+        return "category = 'accessory' AND display_style = 'drawer'", ()
+    return "category = ?", (zone,)
+
+
+def _zone_used_slots(
+    conn: sqlite3.Connection, zone: str, exclude_id: int | None = None
+) -> set[int]:
+    """读取某个分区已经被占用的格位。"""
+    where, args = _zone_where(zone)
+    sql = f"SELECT cabinet_slot FROM garments WHERE deleted_at IS NULL AND {where}"
+    params = list(args)
+    if exclude_id is not None:
+        sql += " AND id != ?"
+        params.append(exclude_id)
+    return {
+        row["cabinet_slot"]
+        for row in conn.execute(sql, params).fetchall()
+        if row["cabinet_slot"] is not None
+    }
+
+
+def _assign_cabinet_slot(
+    conn: sqlite3.Connection,
+    garment_id: int,
+    category: str,
+    display_style: str,
+    force_new: bool = False,
+) -> None:
+    """给物品分配柜子格位：优先保留原格位，否则放进本区第一个空格。"""
+    zone = cabinet_zone(category, display_style)
+    row = conn.execute(
+        "SELECT cabinet_slot FROM garments WHERE id = ?", (garment_id,)
+    ).fetchone()
+    current = row["cabinet_slot"] if row else None
+
+    if zone is None:
+        if current is not None:
+            conn.execute(
+                "UPDATE garments SET cabinet_slot = NULL WHERE id = ?", (garment_id,)
+            )
+        return
+
+    used = _zone_used_slots(conn, zone, exclude_id=garment_id)
+    if not force_new and current is not None and current not in used:
+        return
+
+    slot = 0
+    while slot in used:
+        slot += 1
+    conn.execute(
+        "UPDATE garments SET cabinet_slot = ? WHERE id = ?", (slot, garment_id)
+    )
 
 
 def _attach_images(conn: sqlite3.Connection, garments: list[dict]) -> None:
@@ -197,6 +257,9 @@ def create_garment(data: dict) -> dict:
                 ),
             )
             garment_id = cursor.lastrowid
+            _assign_cabinet_slot(
+                conn, garment_id, meta["category"], meta["display_style"]
+            )
     except sqlite3.Error as exc:
         logger.exception("创建衣服失败")
         raise ServiceError("保存衣服失败，请重试") from exc
@@ -214,7 +277,16 @@ def update_garment(garment_id: int, data: dict) -> dict:
     conn = get_conn()
     try:
         with conn:
-            cursor = conn.execute(
+            old = conn.execute(
+                "SELECT category, display_style FROM garments "
+                "WHERE id = ? AND deleted_at IS NULL",
+                (garment_id,),
+            ).fetchone()
+            if old is None:
+                raise NotFoundError("衣服不存在或已被删除")
+            old_zone = cabinet_zone(old["category"], old["display_style"])
+
+            conn.execute(
                 "UPDATE garments SET name = ?, category = ?, color = ?, "
                 "display_style = ?, seasons = ?, occasions = ?, brand = ?, price = ?, "
                 "purchase_date = ?, notes = ?, updated_at = ? "
@@ -234,8 +306,14 @@ def update_garment(garment_id: int, data: dict) -> dict:
                     garment_id,
                 ),
             )
-            if cursor.rowcount == 0:
-                raise NotFoundError("衣服不存在或已被删除")
+            new_zone = cabinet_zone(meta["category"], meta["display_style"])
+            _assign_cabinet_slot(
+                conn,
+                garment_id,
+                meta["category"],
+                meta["display_style"],
+                force_new=(old_zone != new_zone),
+            )
     except sqlite3.Error as exc:
         logger.exception("更新衣服失败 id=%s", garment_id)
         raise ServiceError("保存修改失败，请重试") from exc
@@ -278,6 +356,75 @@ def reorder_garments(ids: list) -> int:
         conn.close()
 
     logger.info("已保存衣服排序，共 %s 件", len(prepared))
+    return len(prepared)
+
+
+def save_cabinet_slots(items: list) -> int:
+    """保存柜子格位（同一分区内拖动或交换）。"""
+    if not isinstance(items, list) or not items:
+        raise ValidationError("格位数据为空")
+    if len(items) > 200:
+        raise ValidationError("一次最多调整 200 件物品")
+
+    prepared = []
+    for entry in items:
+        if not isinstance(entry, dict):
+            raise ValidationError("格位数据格式不正确")
+        try:
+            garment_id = int(entry.get("id"))
+            slot = int(entry.get("slot"))
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("格位数据格式不正确") from exc
+        if garment_id <= 0 or slot < 0 or slot > 999:
+            raise ValidationError("格位数据格式不正确")
+        prepared.append((garment_id, slot))
+
+    conn = get_conn()
+    try:
+        with conn:
+            records: dict[int, tuple[str, int]] = {}
+            for garment_id, slot in prepared:
+                row = conn.execute(
+                    "SELECT id, category, display_style FROM garments "
+                    "WHERE id = ? AND deleted_at IS NULL",
+                    (garment_id,),
+                ).fetchone()
+                if row is None:
+                    raise NotFoundError("衣服不存在或已被删除")
+                zone = cabinet_zone(row["category"], row["display_style"])
+                if zone is None:
+                    raise ValidationError("这件物品不在柜子里")
+                records[garment_id] = (zone, slot)
+
+            submitted = set(records)
+            seen = set()
+            for garment_id, (zone, slot) in records.items():
+                key = (zone, slot)
+                if key in seen:
+                    raise ValidationError("同一分区内不能把两件物品放在同一个格子")
+                seen.add(key)
+
+                where, args = _zone_where(zone)
+                occupant = conn.execute(
+                    f"SELECT id FROM garments WHERE deleted_at IS NULL "
+                    f"AND cabinet_slot = ? AND id != ? AND {where}",
+                    (slot, garment_id, *args),
+                ).fetchone()
+                if occupant is not None and occupant["id"] not in submitted:
+                    raise ValidationError("目标格子已经被占用")
+
+            for garment_id, (_zone, slot) in records.items():
+                conn.execute(
+                    "UPDATE garments SET cabinet_slot = ? WHERE id = ?",
+                    (slot, garment_id),
+                )
+    except sqlite3.Error as exc:
+        logger.exception("保存柜子格位失败")
+        raise ServiceError("保存柜子位置失败，请重试") from exc
+    finally:
+        conn.close()
+
+    logger.info("已保存柜子格位，共 %s 件", len(prepared))
     return len(prepared)
 
 
@@ -410,12 +557,24 @@ def restore_garment(garment_id: int) -> dict:
     conn = get_conn()
     try:
         with conn:
-            cursor = conn.execute(
-                "UPDATE garments SET deleted_at = NULL, updated_at = ? "
+            row = conn.execute(
+                "SELECT category, display_style FROM garments "
                 "WHERE id = ? AND deleted_at IS NOT NULL",
+                (garment_id,),
+            ).fetchone()
+            if row is None:
+                raise NotFoundError("回收站里没有这件衣服")
+            conn.execute(
+                "UPDATE garments SET deleted_at = NULL, updated_at = ? WHERE id = ?",
                 (now_str(), garment_id),
             )
-            restored = cursor.rowcount
+            _assign_cabinet_slot(
+                conn,
+                garment_id,
+                row["category"],
+                row["display_style"],
+            )
+            restored = 1
     except sqlite3.Error as exc:
         logger.exception("恢复衣服失败 id=%s", garment_id)
         raise ServiceError("恢复失败，请重试") from exc

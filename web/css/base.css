@@ -19,13 +19,23 @@ body {
 }
 
 body {
-  background: var(--bg);
+  /* 米白纸张 + 极淡的双层点状纹理 */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(rgba(120, 90, 55, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px);
+  background-size: 19px 19px, 27px 27px;
+  background-position: 0 0, 10px 13px;
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-md);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+}
+
+::selection {
+  background: rgba(201, 120, 63, 0.22);
 }
 
 button,

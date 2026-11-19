@@ -14,13 +14,16 @@
   padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: #ffffff;
+  background: var(--paper-white);
+  box-shadow: var(--shadow-card);
 }
 
 .settings__title {
   margin-bottom: 8px;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
 }
 
 .settings__text {
@@ -44,6 +47,22 @@
   padding: 8px 0;
   font-size: var(--font-size-xs);
   color: var(--text-faint);
+}
+
+.settings__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 8px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.settings__toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* ---------------------------------------------------------------- 回收站列表 */

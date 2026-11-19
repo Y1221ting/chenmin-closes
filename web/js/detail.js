@@ -190,6 +190,7 @@
   function render() {
     const garment = state.garment;
     els.name.textContent = garment.name;
+    els.name.title = garment.name;
 
     const hasImages = Object.keys(garment.images).length > 0;
     els.placeholder.hidden = hasImages;

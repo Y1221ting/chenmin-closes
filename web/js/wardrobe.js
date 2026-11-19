@@ -569,6 +569,7 @@
       </div>
       <button class="closet-drawer__front" type="button" data-panel="drawer-${index}"
               aria-label="打开第 ${index + 1} 个抽屉">
+        <span class="closet-drawer__label">小配饰 ${index * 3 + 1}–${index * 3 + 3}</span>
         <span class="closet-drawer__handle"></span>
         ${count ? `<span class="closet-drawer__count">${count} 件</span>` : ''}
       </button>
@@ -577,7 +578,12 @@
     const cells = drawer.querySelector('.closet-drawer__cells');
     for (let offset = 0; offset < 3; offset += 1) {
       const slot = index * 3 + offset;
-      cells.appendChild(cabinetCell('drawer', slot, map.get(slot)));
+      const cell = cabinetCell('drawer', slot, map.get(slot));
+      const number = document.createElement('span');
+      number.className = 'closet-drawer__cell-index';
+      number.textContent = String(offset + 1);
+      cell.appendChild(number);
+      cells.appendChild(cell);
     }
     return drawer;
   }
@@ -617,11 +623,16 @@
                       data-hinge="${index === 2 ? 'right' : 'left'}"
                       aria-label="打开顶柜第 ${index + 1} 扇门">
                 <span class="closet-door__panel">
+                  <span class="closet-door__label">收纳盒 ${index + 1}</span>
                   <span class="closet-door__handle"></span>
                 </span>
               </button>
             </div>
           `).join('')}
+        </div>
+        <div class="closet-zone-head">
+          <span>鞋 · 8 格</span>
+          <span>帽子（上） / 包（下）</span>
         </div>
         <div class="closet__middle">
           <div class="closet-side closet-side--left">
@@ -633,6 +644,9 @@
             <div class="closet-grid closet-bags" style="--rows:${bagRows}"></div>
             ${rightFill > 0 ? `<div class="closet-fill" style="height:${rightFill}px"></div>` : ''}
           </div>
+        </div>
+        <div class="closet-zone-head closet-zone-head--drawers">
+          <span>小配饰抽屉 · 9 格</span>
         </div>
         <div class="closet__drawers"></div>
       </div>

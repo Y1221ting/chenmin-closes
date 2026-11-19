@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS garments (
     last_worn     TEXT,
     created_at    TEXT    NOT NULL,
     updated_at    TEXT,
-    deleted_at    TEXT
+    deleted_at    TEXT,
+    sort_order    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS garment_images (
@@ -164,6 +165,16 @@ def _ensure_deleted_columns(conn: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_sort_order(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上挂杆排序字段。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(garments)")}
+    if "sort_order" not in columns:
+        conn.execute(
+            "ALTER TABLE garments ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"
+        )
+        logger.info("数据库迁移：garments 新增字段 sort_order")
+
+
 def _ensure_item_columns(conn: sqlite3.Connection) -> None:
     """为老版本数据库补上画布单品的遮挡字段。"""
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(outfit_items)")}
@@ -186,6 +197,7 @@ def init_db() -> None:
             _ensure_deleted_columns(conn)
             _ensure_image_columns(conn)
             _ensure_item_columns(conn)
+            _ensure_sort_order(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < SCHEMA_VERSION:
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

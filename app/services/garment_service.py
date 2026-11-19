@@ -112,7 +112,7 @@ def list_garments(filters: dict) -> list[dict]:
         sql += " AND name LIKE ?"
         args.append(f"%{keyword}%")
 
-    sql += " ORDER BY created_at DESC, id DESC"
+    sql += " ORDER BY sort_order ASC, created_at DESC, id DESC"
 
     conn = get_conn()
     try:
@@ -157,11 +157,18 @@ def create_garment(data: dict) -> dict:
     conn = get_conn()
     try:
         with conn:
+            row = conn.execute(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order "
+                "FROM garments WHERE category = ? AND deleted_at IS NULL",
+                (meta["category"],),
+            ).fetchone()
+            sort_order = row["next_order"] if row else 0
+
             cursor = conn.execute(
                 "INSERT INTO garments "
                 "(name, category, color, seasons, occasions, brand, price, "
-                "purchase_date, notes, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "purchase_date, notes, created_at, updated_at, sort_order) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     meta["name"],
                     meta["category"],
@@ -174,6 +181,7 @@ def create_garment(data: dict) -> dict:
                     meta["notes"],
                     now,
                     now,
+                    sort_order,
                 ),
             )
             garment_id = cursor.lastrowid
@@ -221,6 +229,42 @@ def update_garment(garment_id: int, data: dict) -> dict:
         conn.close()
 
     return get_garment(garment_id)
+
+
+def reorder_garments(ids: list) -> int:
+    """按给定顺序保存挂杆排序（通常是一个类别内的衣服）。"""
+    if not isinstance(ids, list) or not ids:
+        raise ValidationError("排序数据为空")
+    if len(ids) > 500:
+        raise ValidationError("一次最多排序 500 件衣服")
+
+    prepared = []
+    for index, raw in enumerate(ids):
+        try:
+            garment_id = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("排序数据格式不正确") from exc
+        if garment_id <= 0:
+            raise ValidationError("排序数据格式不正确")
+        prepared.append((index, garment_id))
+
+    conn = get_conn()
+    try:
+        with conn:
+            for index, garment_id in prepared:
+                conn.execute(
+                    "UPDATE garments SET sort_order = ? "
+                    "WHERE id = ? AND deleted_at IS NULL",
+                    (index, garment_id),
+                )
+    except sqlite3.Error as exc:
+        logger.exception("保存衣服排序失败")
+        raise ServiceError("保存顺序失败，请重试") from exc
+    finally:
+        conn.close()
+
+    logger.info("已保存衣服排序，共 %s 件", len(prepared))
+    return len(prepared)
 
 
 def save_image(garment_id: int, angle: str, raw: bytes) -> dict:

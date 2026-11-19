@@ -46,6 +46,12 @@ def adjust_image(req: Request) -> tuple[int, dict]:
     return 200, {"ok": True, "data": data}
 
 
+def reorder_garments(req: Request) -> tuple[int, dict]:
+    payload = req.json()
+    count = garment_service.reorder_garments(payload.get("ids", []))
+    return 200, {"ok": True, "data": {"reordered": count}}
+
+
 def upload_image(req: Request) -> tuple[int, dict]:
     angle = (req.query.get("angle") or "").strip()
     if angle not in ANGLE_LABELS:

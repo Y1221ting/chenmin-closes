@@ -149,6 +149,33 @@ def main() -> int:
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}")
 
+        # 2.0 侧栏导览与筛选弹层
+        for needle, label in [
+            ('class="sidebar__logo"', "侧栏花体招牌"),
+            ('id="sidebar-catalog"', "侧栏衣橱目录容器"),
+            ('id="btn-filter-toggle"', "顶部筛选按钮"),
+            ('id="filter-pop"', "筛选弹层"),
+            ('class="filter-toggle__count"', "筛选数量角标"),
+        ]:
+            ok = needle in html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
+
+        catalog_count = html.count('class="catalog-item__name"')
+        ok = catalog_count == 9
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 侧栏目录 9 个类别（实际 {catalog_count}）")
+
+        status, counts_resp = call("GET", base + "/api/garments/counts")
+        counts_data = counts_resp.get("data", {})
+        ok = (
+            status == 200
+            and counts_data.get("total") == 1
+            and counts_data.get("categories", {}).get("top") == 1
+        )
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 分类数量接口：{counts_data}")
+
         # 2.2 衣帽柜：顶柜、鞋格、帽格、包格
         for shoe_name, shoe_color in [
             ("UI 测试运动鞋", "black"),
@@ -369,6 +396,10 @@ def main() -> int:
             ok = text in outfits_html
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
+
+        ok = 'id="sidebar-catalog" hidden' in outfits_html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 离开衣柜页时侧栏目录隐藏")
 
         editor_html = dump_dom(browser, f"{base}/#outfit/{outfit_id}", profile)
         for text, label in [

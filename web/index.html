@@ -20,21 +20,27 @@
   <div class="app">
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <span class="sidebar__mark">W</span>
-        <span class="sidebar__name">yt的衣柜</span>
+        <img class="sidebar__logo" src="/assets/yt-brand.webp" alt="yt的衣柜">
       </div>
       <nav class="sidebar__nav">
         <button class="nav-item is-active" type="button" id="nav-wardrobe">衣柜</button>
         <button class="nav-item" type="button" id="nav-outfits">搭配</button>
         <button class="nav-item" type="button" id="nav-settings">设置</button>
       </nav>
-      <div class="sidebar__foot" id="app-version"></div>
+      <div class="sidebar__catalog" id="sidebar-catalog">
+        <p class="sidebar__heading">衣橱目录</p>
+        <div class="catalog" id="category-filters"></div>
+      </div>
+      <div class="sidebar__foot">
+        <p class="sidebar__hint">按住衣服左右拖动可调整顺序<br>悬停查看正面</p>
+        <div id="app-version"></div>
+      </div>
     </aside>
 
     <main class="main">
       <!-- ================= 衣柜页 ================= -->
       <section class="page" id="page-wardrobe">
-        <header class="topbar">
+        <header class="topbar topbar--wardrobe">
           <div class="topbar__heading">
             <h1 class="topbar__title">衣柜</h1>
             <p class="topbar__sub" id="wardrobe-count">正在加载…</p>
@@ -42,27 +48,38 @@
           <div class="topbar__actions">
             <input id="search-input" class="input input--search" type="search"
                    placeholder="搜索名称…" autocomplete="off">
+            <div class="filter-wrap">
+              <button id="btn-filter-toggle" class="btn btn--ghost filter-toggle" type="button">
+                筛选<span class="filter-toggle__count" id="filter-count" hidden></span>
+              </button>
+              <div class="filter-pop" id="filter-pop" hidden>
+                <label class="filter-pop__field">
+                  <span>颜色</span>
+                  <select id="filter-color" class="select">
+                    <option value="">全部</option>
+                  </select>
+                </label>
+                <label class="filter-pop__field">
+                  <span>季节</span>
+                  <select id="filter-season" class="select">
+                    <option value="">全部</option>
+                  </select>
+                </label>
+                <label class="filter-pop__field">
+                  <span>场合</span>
+                  <select id="filter-scene" class="select">
+                    <option value="">全部</option>
+                  </select>
+                </label>
+                <div class="filter-pop__foot">
+                  <button id="btn-clear-filters" class="btn btn--link" type="button" hidden>清除筛选</button>
+                  <button id="btn-filter-done" class="btn btn--ghost" type="button">完成</button>
+                </div>
+              </div>
+            </div>
             <button id="btn-add" class="btn btn--primary" type="button">＋ 添加衣服</button>
           </div>
         </header>
-
-        <div class="filters">
-          <div class="filters__row" id="category-filters"></div>
-          <div class="filters__row filters__row--secondary">
-            <select id="filter-color" class="select">
-              <option value="">颜色</option>
-            </select>
-            <select id="filter-season" class="select">
-              <option value="">季节</option>
-            </select>
-            <select id="filter-scene" class="select">
-              <option value="">场合</option>
-            </select>
-            <button id="btn-clear-filters" class="btn btn--link" type="button" hidden>清除筛选</button>
-          </div>
-        </div>
-
-        <p class="rack-hint">按住衣服左右拖动可调整顺序 · 悬停查看正面</p>
 
         <section class="rack" id="wardrobe-rack"></section>
 

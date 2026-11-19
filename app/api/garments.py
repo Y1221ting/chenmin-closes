@@ -20,6 +20,10 @@ def list_garments(req: Request) -> tuple[int, dict]:
     return 200, {"ok": True, "data": garment_service.list_garments(req.query)}
 
 
+def counts(_req: Request) -> tuple[int, dict]:
+    return 200, {"ok": True, "data": garment_service.category_counts()}
+
+
 def create_garment(req: Request) -> tuple[int, dict]:
     return 200, {"ok": True, "data": garment_service.create_garment(req.json())}
 

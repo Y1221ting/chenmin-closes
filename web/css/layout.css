@@ -8,58 +8,52 @@
 /* ---------------------------------------------------------------- 侧边栏 */
 
 .sidebar {
-  width: 208px;
-  flex: 0 0 208px;
+  width: 236px;
+  flex: 0 0 236px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  padding: var(--space-3) var(--space-2);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-1) var(--space-3);
+  padding: 14px 12px 2px;
+  text-align: center;
 }
 
-.sidebar__mark {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-}
-
-.sidebar__name {
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.sidebar__logo {
+  display: block;
+  width: 196px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(0 3px 5px rgba(90, 60, 30, 0.08));
 }
 
 .sidebar__nav {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 6px;
+  padding: 10px 14px 12px;
 }
 
 .nav-item {
-  display: flex;
+  flex: 1;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: var(--space-1);
-  width: 100%;
-  padding: 10px 12px;
+  padding: 7px 4px;
   border: 0;
-  border-radius: var(--radius-btn);
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-muted);
   font-size: var(--font-size-sm);
-  text-align: left;
   cursor: pointer;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
@@ -89,10 +83,114 @@
   color: var(--text-faint);
 }
 
+/* 衣橱目录：类别 + 数量 */
+
+.sidebar__catalog {
+  min-height: 0;
+  padding: 0 10px;
+}
+
+.sidebar__heading {
+  padding: 2px 12px 6px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  color: var(--text-faint);
+}
+
+.sidebar__heading::after {
+  content: "";
+  display: inline-block;
+  width: 34px;
+  height: 1px;
+  margin-left: 8px;
+  vertical-align: middle;
+  background: linear-gradient(90deg, var(--border-strong), transparent);
+}
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.catalog-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+
+.catalog-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.catalog-item.is-active {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+}
+
+.catalog-item__leaf {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 10px;
+  margin-right: 4px;
+  object-fit: contain;
+  opacity: 0;
+  transform: rotate(-4deg);
+  transition: opacity var(--duration) var(--ease);
+}
+
+.catalog-item.is-active .catalog-item__leaf {
+  opacity: 1;
+}
+
+.catalog-item__name {
+  flex: 1;
+}
+
+.catalog-item__count {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.catalog-item.is-active .catalog-item__count {
+  color: var(--text-muted);
+}
+
 .sidebar__foot {
   margin-top: auto;
-  padding: var(--space-1);
-  font-size: var(--font-size-xs);
+  padding: 16px 18px 12px;
+}
+
+.sidebar__hint {
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--text-faint);
+}
+
+/* 不在衣柜页时，拖动提示也跟着目录一起隐藏 */
+.sidebar__catalog[hidden] ~ .sidebar__foot .sidebar__hint {
+  display: none;
+}
+
+.sidebar__foot #app-version {
+  margin-top: 8px;
+  font-size: 10px;
   color: var(--text-faint);
 }
 
@@ -126,6 +224,15 @@
   padding: var(--space-3) var(--space-4) var(--space-2);
 }
 
+.topbar--wardrobe {
+  align-items: center;
+  padding: 16px 28px 12px;
+}
+
+.topbar__heading {
+  flex-shrink: 0;
+}
+
 .topbar__title {
   font-size: var(--font-size-xl);
   font-weight: 600;
@@ -142,4 +249,84 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
+}
+
+.topbar--wardrobe .input--search {
+  width: 240px;
+  min-width: 150px;
+  flex: 0 1 240px;
+}
+
+/* 筛选弹层 */
+
+.filter-wrap {
+  position: relative;
+}
+
+.filter-toggle.is-active {
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.filter-toggle__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.filter-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 280px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  box-shadow: var(--shadow-float);
+}
+
+.filter-pop__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.filter-pop__field .select {
+  flex: 1;
+  max-width: 180px;
+  height: 32px;
+}
+
+.filter-pop__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.filter-pop__foot #btn-clear-filters {
+  margin-right: auto;
+}
+
+.filter-pop__foot .btn {
+  height: 32px;
 }

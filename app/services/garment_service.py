@@ -197,6 +197,24 @@ def list_garments(filters: dict) -> list[dict]:
         conn.close()
 
 
+def category_counts() -> dict:
+    """按类别统计未删除的衣服数量，给侧栏「衣橱目录」显示角标。"""
+    conn = get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT category, COUNT(*) AS count FROM garments "
+            "WHERE deleted_at IS NULL GROUP BY category"
+        ).fetchall()
+    except sqlite3.Error as exc:
+        logger.exception("统计衣服数量失败")
+        raise ServiceError("读取衣服数量失败，请重试") from exc
+    finally:
+        conn.close()
+
+    counts = {row["category"]: row["count"] for row in rows}
+    return {"total": sum(counts.values()), "categories": counts}
+
+
 def get_garment(garment_id: int) -> dict:
     """读取单件衣服，包含三张角度图信息。"""
     conn = get_conn()

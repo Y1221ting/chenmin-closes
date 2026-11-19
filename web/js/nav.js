@@ -16,6 +16,7 @@
     PAGES.forEach((id) => {
       document.getElementById(id).hidden = id !== pageId;
     });
+    document.getElementById('sidebar-catalog').hidden = pageId !== 'page-wardrobe';
     document
       .getElementById('nav-wardrobe')
       .classList.toggle('is-active', pageId === 'page-wardrobe' || pageId === 'page-garment');

@@ -9,6 +9,7 @@
   const state = {
     meta: null,
     items: [],
+    counts: null,
     category: '',
     color: '',
     season: '',
@@ -32,6 +33,10 @@
     els.scene = document.getElementById('filter-scene');
     els.clear = document.getElementById('btn-clear-filters');
     els.search = document.getElementById('search-input');
+    els.filterToggle = document.getElementById('btn-filter-toggle');
+    els.filterPop = document.getElementById('filter-pop');
+    els.filterDone = document.getElementById('btn-filter-done');
+    els.filterCount = document.getElementById('filter-count');
   }
 
   function labelsOf(key) {
@@ -50,6 +55,12 @@
 
   // ---------------------------------------------------------------- 筛选栏
 
+  function categoryCount(opt) {
+    if (!state.counts) return '';
+    if (!opt.value) return state.counts.total;
+    return (state.counts.categories || {})[opt.value] || 0;
+  }
+
   function renderCategoryChips() {
     const options = [{ value: '', label: '全部' }].concat(state.meta.categories);
     els.categories.innerHTML = '';
@@ -57,8 +68,12 @@
     options.forEach((opt) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'chip' + (state.category === opt.value ? ' is-active' : '');
-      btn.textContent = opt.label;
+      btn.className = 'catalog-item' + (state.category === opt.value ? ' is-active' : '');
+      btn.innerHTML = `
+        <img class="catalog-item__leaf" src="/assets/decor/leaf-small.webp" alt="">
+        <span class="catalog-item__name">${escape(opt.label)}</span>
+        <span class="catalog-item__count">${categoryCount(opt)}</span>
+      `;
       btn.addEventListener('click', () => {
         state.category = opt.value;
         renderCategoryChips();
@@ -67,6 +82,16 @@
       });
       els.categories.appendChild(btn);
     });
+  }
+
+  async function loadCounts() {
+    try {
+      state.counts = await App.api.get('/api/garments/counts');
+      renderCategoryChips();
+    } catch (err) {
+      // 角标失败不影响衣柜使用
+      console.warn('读取分类数量失败', err);
+    }
   }
 
   function fillSelect(select, options, placeholder) {
@@ -88,8 +113,23 @@
     if (current) select.value = current;
   }
 
+  function activeFilterCount() {
+    return [state.color, state.season, state.scene].filter(Boolean).length;
+  }
+
   function updateClearButton() {
-    els.clear.hidden = !hasFilters();
+    const active = hasFilters();
+    els.clear.hidden = !active;
+    const count = activeFilterCount();
+    els.filterCount.hidden = count === 0;
+    els.filterCount.textContent = count ? String(count) : '';
+    els.filterToggle.classList.toggle('is-active', active);
+  }
+
+  function toggleFilters(force) {
+    const show = force === undefined ? els.filterPop.hidden : force;
+    els.filterPop.hidden = !show;
+    els.filterToggle.setAttribute('aria-expanded', show ? 'true' : 'false');
   }
 
   function clearFilters() {
@@ -935,6 +975,7 @@
       const query = params.toString();
       state.items = await App.api.get('/api/garments' + (query ? `?${query}` : ''));
       render();
+      loadCounts();
     } catch (err) {
       App.ui.toast(err.message, 'error');
     } finally {
@@ -975,6 +1016,18 @@
     els.clear.addEventListener('click', clearFilters);
     document.getElementById('btn-clear-empty').addEventListener('click', clearFilters);
 
+    els.filterToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleFilters();
+    });
+    els.filterPop.addEventListener('click', (event) => event.stopPropagation());
+    els.filterDone.addEventListener('click', () => toggleFilters(false));
+    document.addEventListener('click', () => toggleFilters(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') toggleFilters(false);
+    });
+    window.addEventListener('hashchange', () => toggleFilters(false));
+
     let timer = null;
     els.search.addEventListener('input', () => {
       clearTimeout(timer);
@@ -998,8 +1051,9 @@
     });
 
     updateClearButton();
+    loadCounts();
     load();
   }
 
-  App.wardrobe = { init, load };
+  App.wardrobe = { init, load, loadCounts };
 })(window.App = window.App || {});

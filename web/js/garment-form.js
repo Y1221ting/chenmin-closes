@@ -13,6 +13,7 @@
     files: { front: null, front45: null, side: null, back135: null, back: null },
     category: '',
     color: '',
+    displayStyle: 'hang',
     seasons: new Set(),
     occasions: new Set(),
     busy: false,
@@ -28,6 +29,7 @@
     els.title = document.getElementById('drawer-title');
     els.uploadHint = document.getElementById('upload-hint');
     els.name = document.getElementById('name-input');
+    els.displayStyleField = document.getElementById('display-style-field');
     els.save = document.getElementById('btn-save');
     els.clearDraft = document.getElementById('btn-clear-draft');
     els.uploads = Array.from(document.querySelectorAll('.upload'));
@@ -182,8 +184,15 @@
   function isActive(key, value) {
     if (key === 'category') return state.category === value;
     if (key === 'color') return state.color === value;
+    if (key === 'display_style') return state.displayStyle === value;
     if (key === 'season') return state.seasons.has(value);
     return state.occasions.has(value);
+  }
+
+  function updateDisplayStyleField() {
+    if (els.displayStyleField) {
+      els.displayStyleField.hidden = state.category !== 'accessory';
+    }
   }
 
   function syncChips() {
@@ -193,6 +202,7 @@
         btn.classList.toggle('is-active', isActive(key, btn.dataset.value));
       });
     });
+    updateDisplayStyleField();
   }
 
   function onChipClick(key, value) {
@@ -200,6 +210,9 @@
       state.category = state.category === value ? '' : value;
     } else if (key === 'color') {
       state.color = state.color === value ? '' : value;
+    } else if (key === 'display_style') {
+      // 摆放方式必须三选一，点击已选项不取消
+      state.displayStyle = value;
     } else if (key === 'season') {
       toggleSet(state.seasons, value);
     } else {
@@ -211,6 +224,7 @@
   function renderChips() {
     const groups = [
       ['category', state.meta.categories],
+      ['display_style', state.meta.display_styles || []],
       ['color', state.meta.colors],
       ['season', state.meta.seasons],
       ['occasion', state.meta.scenes.map((name) => ({ value: name, label: name }))],
@@ -240,6 +254,7 @@
         els.name.value.trim() ||
         state.category ||
         state.color ||
+        state.displayStyle !== 'hang' ||
         state.seasons.size ||
         state.occasions.size
     );
@@ -251,6 +266,7 @@
       name: els.name.value,
       category: state.category,
       color: state.color,
+      displayStyle: state.displayStyle,
       seasons: Array.from(state.seasons),
       occasions: Array.from(state.occasions),
     };
@@ -267,6 +283,7 @@
     els.name.value = draft.name || '';
     state.category = draft.category || '';
     state.color = draft.color || '';
+    state.displayStyle = draft.displayStyle || 'hang';
     state.seasons = new Set(draft.seasons || []);
     state.occasions = new Set(draft.occasions || []);
 
@@ -290,6 +307,7 @@
     state.files = { front: null, front45: null, side: null, back135: null, back: null };
     state.category = '';
     state.color = '';
+    state.displayStyle = 'hang';
     state.seasons = new Set();
     state.occasions = new Set();
 
@@ -324,6 +342,7 @@
     state.garmentId = garment.id;
     state.category = garment.category || '';
     state.color = garment.color || '';
+    state.displayStyle = garment.display_style || 'hang';
     state.seasons = new Set(garment.seasons || []);
     state.occasions = new Set(garment.occasions || []);
 
@@ -408,6 +427,7 @@
       name,
       category: state.category,
       color: state.color || null,
+      display_style: state.displayStyle,
       seasons: Array.from(state.seasons),
       occasions: Array.from(state.occasions),
     };

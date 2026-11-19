@@ -80,8 +80,9 @@ py -3.11 -m venv .venv
 .venv/Scripts/python.exe main.py
 
 # 打包程序
-.venv/Scripts/pyinstaller.exe --noconfirm --windowed --name=个人衣柜 ^
-  --add-data "web;web" --collect-all webview main.py
+.venv/Scripts/pyinstaller.exe --noconfirm --onefile --windowed --name=个人衣柜 ^
+  --icon=web/assets/icon.ico --add-data "web;web" ^
+  --collect-all webview --collect-all pythonnet --collect-all clr_loader main.py
 ```
 
 ## 远程仓库

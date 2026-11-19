@@ -12,6 +12,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  transition: transform 260ms var(--ease);
 }
 
 .outfit-mini__item {
@@ -24,7 +25,6 @@
 
 .outfit-card:hover .outfit-mini {
   transform: scale(1.03);
-  transition: transform 260ms var(--ease);
 }
 
 .outfit-worn-cover {

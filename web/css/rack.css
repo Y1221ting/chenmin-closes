@@ -379,7 +379,8 @@ body.is-racking .rack-item {
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  padding: 4px 4px 12px;
+  /* 上下留出悬停抬起与阴影的空间，避免被滚动容器裁掉 */
+  padding: 12px 8px 14px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
@@ -420,6 +421,11 @@ body.is-racking .rack-item {
   outline: none;
 }
 
+.shelf-item:hover,
+.shelf-item:focus-within {
+  z-index: 4;
+}
+
 .shelf-item:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: -2px;
@@ -434,6 +440,17 @@ body.is-racking .rack-item {
   padding: 8px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.65);
+  transform-origin: center bottom;
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
+              background-color 200ms var(--ease);
+}
+
+/* 悬停时像把单品从隔板上轻轻拿起来 */
+.shelf-item:hover img,
+.shelf-item:focus-within img {
+  transform: translateY(-5px) scale(1.06);
+  background-color: #ffffff;
+  box-shadow: 0 14px 20px rgba(0, 0, 0, 0.16);
 }
 
 .shelf-item__name {
@@ -455,12 +472,14 @@ body.is-racking .rack-item {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0;
-  transition: opacity 200ms var(--ease);
+  transform: translateY(2px);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
 }
 
 .shelf-item:hover .shelf-item__meta,
 .shelf-item:focus-within .shelf-item__meta {
   opacity: 1;
+  transform: none;
 }
 
 .shelf-item__delete {

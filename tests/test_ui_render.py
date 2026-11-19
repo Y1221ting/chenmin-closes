@@ -103,7 +103,7 @@ def main() -> int:
         # 1. 空衣柜
         html = dump_dom(browser, base + "/", profile)
         checks = [
-            ("个人衣柜", "页面标题"),
+            ("yt的衣柜", "页面标题"),
             ("衣柜还是空的", "空状态文案"),
             ("添加衣服", "添加按钮"),
         ]

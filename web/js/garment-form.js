@@ -1,8 +1,10 @@
-/* 添加 / 编辑衣服抽屉：三张角度图 + 信息点选 + 上传。 */
+/* 添加 / 编辑衣服抽屉：角度图、信息点选、草稿暂存、文件拖入上传。 */
 (function (App) {
   'use strict';
 
   const ANGLE_ORDER = ['front', 'front45', 'side', 'back135', 'back'];
+  // 拖入图片时优先填入这三个常用角度，再补 45° / 135°
+  const FILL_ORDER = ['front', 'side', 'back', 'front45', 'back135'];
 
   const state = {
     meta: null,
@@ -18,6 +20,7 @@
 
   const els = {};
   const urls = [];
+  let createDraft = null;
 
   function cache() {
     els.drawer = document.getElementById('drawer');
@@ -26,7 +29,9 @@
     els.uploadHint = document.getElementById('upload-hint');
     els.name = document.getElementById('name-input');
     els.save = document.getElementById('btn-save');
+    els.clearDraft = document.getElementById('btn-clear-draft');
     els.uploads = Array.from(document.querySelectorAll('.upload'));
+    els.uploadsBox = document.querySelector('.uploads');
   }
 
   function tileOf(angle) {
@@ -70,6 +75,97 @@
         state.files[tile.dataset.angle] = file;
         setFilePreview(tile, file);
       });
+    });
+  }
+
+  // ---------------------------------------------------------------- 拖入图片
+
+  function hasFiles(event) {
+    const types = event.dataTransfer && event.dataTransfer.types;
+    return Boolean(types && Array.from(types).includes('Files'));
+  }
+
+  function handleFiles(files, preferredAngle) {
+    const images = Array.from(files || []).filter((file) =>
+      file.type.startsWith('image/')
+    );
+    if (!images.length) {
+      App.ui.toast('请拖入图片文件（PNG / JPG）', 'error');
+      return;
+    }
+
+    const order = [];
+    if (preferredAngle) order.push(preferredAngle);
+    FILL_ORDER.forEach((angle) => {
+      if (!order.includes(angle)) order.push(angle);
+    });
+
+    images.slice(0, order.length).forEach((file, index) => {
+      const angle = order[index];
+      state.files[angle] = file;
+      const tile = tileOf(angle);
+      if (!tile) return;
+      const input = tile.querySelector('input[type=file]');
+      if (input) input.value = '';
+      setFilePreview(tile, file);
+    });
+
+    if (images.length > order.length) {
+      App.ui.toast(`最多填入 ${order.length} 个角度，多余的图片已忽略`);
+    } else {
+      App.ui.toast(`已填入 ${Math.min(images.length, order.length)} 张图片`);
+    }
+  }
+
+  function bindDrop() {
+    els.uploadsBox.addEventListener('dragover', (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      els.uploadsBox.classList.add('is-dragover');
+    });
+    els.uploadsBox.addEventListener('dragleave', () => {
+      els.uploadsBox.classList.remove('is-dragover');
+    });
+    els.uploadsBox.addEventListener('drop', (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      els.uploadsBox.classList.remove('is-dragover');
+      handleFiles(event.dataTransfer.files, null);
+    });
+
+    els.uploads.forEach((tile) => {
+      tile.addEventListener('dragover', (event) => {
+        if (!hasFiles(event)) return;
+        event.preventDefault();
+        tile.classList.add('is-dragover');
+      });
+      tile.addEventListener('dragleave', () => {
+        tile.classList.remove('is-dragover');
+      });
+      tile.addEventListener('drop', (event) => {
+        if (!hasFiles(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        tile.classList.remove('is-dragover');
+        handleFiles(event.dataTransfer.files, tile.dataset.angle);
+      });
+    });
+  }
+
+  function bindWindowDrop() {
+    window.addEventListener('dragover', (event) => {
+      if (hasFiles(event)) event.preventDefault();
+    });
+    window.addEventListener('drop', (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      if (document.querySelector('.modal')) return;
+
+      if (els.drawer.hidden) {
+        openCreate();
+      }
+      handleFiles(event.dataTransfer.files, null);
     });
   }
 
@@ -136,6 +232,56 @@
     syncChips();
   }
 
+  // ---------------------------------------------------------------- 草稿
+
+  function hasDraftContent() {
+    return Boolean(
+      Object.values(state.files).some(Boolean) ||
+        els.name.value.trim() ||
+        state.category ||
+        state.color ||
+        state.seasons.size ||
+        state.occasions.size
+    );
+  }
+
+  function captureDraft() {
+    return {
+      files: { ...state.files },
+      name: els.name.value,
+      category: state.category,
+      color: state.color,
+      seasons: Array.from(state.seasons),
+      occasions: Array.from(state.occasions),
+    };
+  }
+
+  function snapshotCreateDraft() {
+    if (state.mode !== 'create') return;
+    createDraft = hasDraftContent() ? captureDraft() : null;
+  }
+
+  function restoreDraft(draft) {
+    resetFields();
+    state.files = { ...draft.files };
+    els.name.value = draft.name || '';
+    state.category = draft.category || '';
+    state.color = draft.color || '';
+    state.seasons = new Set(draft.seasons || []);
+    state.occasions = new Set(draft.occasions || []);
+
+    ANGLE_ORDER.forEach((angle) => {
+      const tile = tileOf(angle);
+      if (tile) setFilePreview(tile, state.files[angle] || null);
+    });
+    syncChips();
+  }
+
+  function discardCreateDraft() {
+    createDraft = null;
+    resetFields();
+  }
+
   // ---------------------------------------------------------------- 抽屉
 
   function resetFields() {
@@ -157,14 +303,22 @@
   }
 
   function openCreate() {
-    resetFields();
+    if (createDraft) {
+      restoreDraft(createDraft);
+    } else {
+      resetFields();
+    }
+    state.mode = 'create';
+    state.garmentId = null;
     els.title.textContent = '添加衣服';
-    els.uploadHint.textContent = '正面必填，侧面和背面可稍后补';
+    els.uploadHint.textContent = '正面必填，其余角度可稍后补 · 可直接从文件夹拖入图片';
+    els.clearDraft.hidden = false;
     els.drawer.hidden = false;
     els.name.focus();
   }
 
   function openEdit(garment) {
+    snapshotCreateDraft();
     resetFields();
     state.mode = 'edit';
     state.garmentId = garment.id;
@@ -175,6 +329,7 @@
 
     els.title.textContent = '编辑衣服';
     els.uploadHint.textContent = '不重新选择就保留原图';
+    els.clearDraft.hidden = true;
     els.name.value = garment.name;
 
     ANGLE_ORDER.forEach((angle) => {
@@ -189,7 +344,23 @@
     els.name.focus();
   }
 
-  function close() {
+  function close(options) {
+    const discard = Boolean(options && options.discard);
+
+    if (discard) {
+      if (state.mode === 'create') {
+        createDraft = null;
+        resetFields();
+      }
+    } else {
+      snapshotCreateDraft();
+      if (state.mode === 'create' && createDraft) {
+        setTimeout(() => {
+          App.ui.toast('已暂存，下次打开可以继续');
+        }, 60);
+      }
+    }
+
     els.drawer.hidden = true;
     releaseUrls();
   }
@@ -266,7 +437,7 @@
     }
 
     setBusy(false);
-    close();
+    close({ discard: !isEdit });
     App.ui.toast(isEdit ? '已保存' : '已添加到衣柜');
     App.wardrobe.load();
     if (isEdit && App.detail) {
@@ -280,15 +451,21 @@
     state.meta = meta;
     cache();
     bindUploads();
+    bindDrop();
+    bindWindowDrop();
     renderChips();
 
     els.form.addEventListener('submit', submit);
     els.drawer.querySelectorAll('[data-close]').forEach((el) => {
-      el.addEventListener('click', close);
+      el.addEventListener('click', () => close());
+    });
+    els.clearDraft.addEventListener('click', () => {
+      discardCreateDraft();
+      App.ui.toast('已清空，可以重新填写');
     });
     document.getElementById('btn-add').addEventListener('click', openCreate);
     document.getElementById('btn-add-empty').addEventListener('click', openCreate);
   }
 
-  App.garmentForm = { init, openCreate, openEdit, close };
+  App.garmentForm = { init, openCreate, openEdit, close, handleFiles };
 })(window.App = window.App || {});

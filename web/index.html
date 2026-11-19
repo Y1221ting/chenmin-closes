@@ -61,6 +61,8 @@
           </div>
         </div>
 
+        <p class="rack-hint">按住衣服左右拖动可调整顺序 · 悬停查看正面</p>
+
         <section class="rack" id="wardrobe-rack"></section>
 
         <section class="empty" id="empty-state" hidden>
@@ -310,12 +312,15 @@
     <form class="drawer__panel" id="garment-form" novalidate>
       <header class="drawer__head">
         <h2 class="drawer__title" id="drawer-title">添加衣服</h2>
-        <button class="icon-btn" type="button" data-close aria-label="关闭">✕</button>
+        <div class="drawer__head-actions">
+          <button class="btn btn--link" id="btn-clear-draft" type="button">清空重填</button>
+          <button class="icon-btn" type="button" data-close aria-label="关闭">✕</button>
+        </div>
       </header>
 
       <div class="drawer__body">
         <div class="field">
-          <span class="field__label">角度图<span class="field__hint" id="upload-hint">正面必填，其余角度可稍后补</span></span>
+          <span class="field__label">角度图<span class="field__hint" id="upload-hint">正面必填，其余角度可稍后补 · 可直接从文件夹拖入图片</span></span>
           <div class="uploads">
             <label class="upload" data-angle="front">
               <input type="file" accept="image/png,image/webp" hidden>

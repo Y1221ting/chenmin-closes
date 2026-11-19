@@ -17,6 +17,7 @@
   };
 
   const els = {};
+  let drag = null;
 
   function cache() {
     els.rack = document.getElementById('wardrobe-rack');
@@ -118,6 +119,90 @@
     App.nav.toGarment(item.id);
   }
 
+  // ---------------------------------------------------------------- 拖动排序
+
+  function beginDrag(event, el) {
+    drag = {
+      el,
+      rail: el.parentElement,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+    try {
+      el.setPointerCapture(event.pointerId);
+    } catch (ignore) {
+      /* 指针捕获失败时仍可拖动 */
+    }
+  }
+
+  function onDragMove(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.moved) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      drag.moved = true;
+      drag.el.classList.add('is-dragging');
+      document.body.classList.add('is-racking');
+    }
+
+    const items = Array.from(drag.rail.querySelectorAll('.rack-item'));
+    if (!items.length) return;
+
+    const firstRect = items[0].getBoundingClientRect();
+    const lastRect = items[items.length - 1].getBoundingClientRect();
+
+    if (event.clientX < firstRect.left) {
+      drag.rail.insertBefore(drag.el, items[0]);
+      return;
+    }
+    if (event.clientX > lastRect.right) {
+      drag.rail.appendChild(drag.el);
+      return;
+    }
+
+    const target = items.find((node) => {
+      const rect = node.getBoundingClientRect();
+      return event.clientX >= rect.left && event.clientX <= rect.right;
+    });
+    if (!target || target === drag.el) return;
+
+    const rect = target.getBoundingClientRect();
+    const before = event.clientX < rect.left + rect.width / 2;
+    drag.rail.insertBefore(drag.el, before ? target : target.nextSibling);
+  }
+
+  async function onDragUp(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+
+    const { el, rail, moved, pointerId } = drag;
+    drag = null;
+    try {
+      el.releasePointerCapture(pointerId);
+    } catch (ignore) {
+      /* 已经释放时忽略 */
+    }
+    el.classList.remove('is-dragging');
+    document.body.classList.remove('is-racking');
+
+    if (!moved) return;
+    el._dragEndedAt = Date.now();
+
+    const ids = Array.from(rail.querySelectorAll('.rack-item')).map((node) =>
+      Number(node.dataset.id)
+    );
+    try {
+      await App.api.put('/api/garments/order', { ids });
+      App.ui.toast('顺序已保存');
+    } catch (err) {
+      App.ui.toast(err.message, 'error');
+      load();
+    }
+  }
+
   function rackItem(item, index) {
     const el = document.createElement('div');
     el.className = 'rack-item';
@@ -138,6 +223,16 @@
     const sideSrc = sidePath ? `/data/${escape(sidePath)}${suffix}` : '';
     const frontSrc = frontPath ? `/data/${escape(frontPath)}${suffix}` : '';
 
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    el.setAttribute('aria-label', metaText ? `${item.name} · ${metaText}` : item.name);
+
     el.innerHTML = `
       <span class="rack-item__hanger" aria-hidden="true">
         <svg viewBox="0 0 64 48">
@@ -150,11 +245,18 @@
         ${frontSrc ? `<img class="rack-item__front" src="${frontSrc}" alt="" loading="lazy">` : ''}
       </span>
       <span class="rack-item__name">${escape(item.name)}</span>
+      <span class="rack-item__meta">${escape(metaText)}</span>
       <button class="rack-item__delete" type="button" title="删除">✕</button>
     `;
 
+    el.addEventListener('pointerdown', (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      if (event.target.closest('.rack-item__delete')) return;
+      beginDrag(event, el);
+    });
     el.addEventListener('click', (event) => {
       if (event.target.closest('.rack-item__delete')) return;
+      if (el._dragEndedAt && Date.now() - el._dragEndedAt < 300) return;
       openGarment(item);
     });
     el.addEventListener('keydown', (event) => {
@@ -387,6 +489,10 @@
         load();
       }, 220);
     });
+
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragUp);
+    window.addEventListener('pointercancel', onDragUp);
 
     updateClearButton();
     load();

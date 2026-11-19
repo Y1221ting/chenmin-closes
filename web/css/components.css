@@ -300,9 +300,20 @@
 }
 
 .upload__preview::after {
-  content: "点击选择";
+  content: "点击或拖入";
   font-size: 11px;
   color: var(--text-faint);
+}
+
+.uploads.is-dragover {
+  outline: 2px dashed var(--text-muted);
+  outline-offset: 8px;
+  border-radius: var(--radius-card);
+}
+
+.upload.is-dragover .upload__preview {
+  border-color: var(--text);
+  background-color: var(--surface-hover);
 }
 
 .upload:hover .upload__preview {
@@ -381,6 +392,12 @@
   justify-content: space-between;
   padding: var(--space-3) var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--border);
+}
+
+.drawer__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .drawer__title {

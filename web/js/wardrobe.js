@@ -3,7 +3,8 @@
   'use strict';
 
   const CLOTH_CATEGORIES = ['top', 'outer', 'bottom', 'dress'];
-  const SHELF_CATEGORIES = ['shoes', 'bag'];
+  const SHELF_CATEGORIES = ['bag'];
+  const SHOE_CATEGORY = 'shoes';
   const ACCESSORY_CATEGORY = 'accessory';
   const ACCESSORY_STYLES = ['hang', 'bag', 'flat'];
 
@@ -389,6 +390,96 @@
     return section;
   }
 
+  // ---------------------------------------------------------------- 鞋柜
+
+  function shoeItem(item) {
+    const el = document.createElement('div');
+    el.className = 'shoe-item';
+    el.dataset.id = item.id;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    const labelText = metaText ? `${item.name} · ${metaText}` : item.name;
+    el.setAttribute('aria-label', labelText);
+
+    const suffix = imageVersion(item);
+    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
+
+    el.innerHTML = `
+      ${src ? `<img class="shoe-img" src="${src}" alt="" loading="lazy">` : '<span class="shoe-missing">无图</span>'}
+      <span class="shoe-tag">${escape(labelText)}</span>
+      <button class="shoe-item__delete" type="button" title="删除">✕</button>
+    `;
+
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('.shoe-item__delete')) return;
+      openGarment(item);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openGarment(item);
+      }
+    });
+    el.querySelector('.shoe-item__delete').addEventListener('click', (event) => {
+      handleDelete(event, item);
+    });
+
+    return el;
+  }
+
+  function shoeSection(items) {
+    const section = document.createElement('section');
+    section.className = 'shoe-section';
+
+    const half = Math.ceil(items.length / 2);
+    const topItems = items.slice(0, half);
+    const bottomItems = items.slice(half);
+
+    section.innerHTML = `
+      <div class="rack-section__head">
+        <span class="rack-section__label">鞋柜</span>
+        <span class="rack-section__count">${items.length} 双</span>
+      </div>
+      <div class="shoe-rack">
+        <div class="shoe-track">
+          <div class="shoe-shelf shoe-shelf--top">
+            <div class="shoe-items"></div>
+          </div>
+          <div class="shoe-shelf shoe-shelf--bottom">
+            <div class="shoe-items"></div>
+          </div>
+          <div class="shoe-board shoe-board--top" aria-hidden="true"></div>
+          <div class="shoe-board shoe-board--bottom" aria-hidden="true"></div>
+        </div>
+      </div>
+    `;
+
+    const topBox = section.querySelector('.shoe-shelf--top .shoe-items');
+    topItems.forEach((item) => topBox.appendChild(shoeItem(item)));
+
+    const bottomShelf = section.querySelector('.shoe-shelf--bottom');
+    const bottomBoard = section.querySelector('.shoe-board--bottom');
+    if (bottomItems.length) {
+      const bottomBox = bottomShelf.querySelector('.shoe-items');
+      bottomItems.forEach((item) => bottomBox.appendChild(shoeItem(item)));
+    } else {
+      bottomShelf.hidden = true;
+      bottomBoard.hidden = true;
+    }
+
+    return section;
+  }
+
   // ---------------------------------------------------------------- 配饰收纳
 
   function accessoryStyle(item) {
@@ -564,7 +655,12 @@
         .map((category) => labels[category] || '')
         .filter(Boolean)
         .join(' · ');
-      els.rack.appendChild(shelfSection(shelfItems, label || '鞋包'));
+      els.rack.appendChild(shelfSection(shelfItems, label || '包'));
+    }
+
+    const shoes = grouped[SHOE_CATEGORY] || [];
+    if (shoes.length) {
+      els.rack.appendChild(shoeSection(shoes));
     }
   }
 

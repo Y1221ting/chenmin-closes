@@ -305,7 +305,8 @@ body.is-racking .rack-item {
 
 .rack-item__delete,
 .shelf-item__delete,
-.accessory-item__delete {
+.accessory-item__delete,
+.shoe-item__delete {
   position: absolute;
   z-index: 3;
   width: 24px;
@@ -334,13 +335,16 @@ body.is-racking .rack-item {
 .shelf-item:hover .shelf-item__delete,
 .shelf-item:focus-within .shelf-item__delete,
 .accessory-item:hover .accessory-item__delete,
-.accessory-item:focus-within .accessory-item__delete {
+.accessory-item:focus-within .accessory-item__delete,
+.shoe-item:hover .shoe-item__delete,
+.shoe-item:focus-within .shoe-item__delete {
   opacity: 1;
 }
 
 .rack-item__delete:hover,
 .shelf-item__delete:hover,
-.accessory-item__delete:hover {
+.accessory-item__delete:hover,
+.shoe-item__delete:hover {
   color: var(--danger);
 }
 
@@ -744,6 +748,8 @@ body.is-racking .rack-item {
   height: 58px;
   border-radius: 3px 3px 9px 9px;
   z-index: 2;
+  transform-origin: bottom center;
+  transition: opacity 220ms var(--ease), transform 220ms var(--ease);
   background:
     linear-gradient(
       90deg,
@@ -787,10 +793,18 @@ body.is-racking .rack-item {
   transform: translateY(-4px);
 }
 
+/* 悬停时袋口向下让开，完整单品升到袋子上方 */
+.accessory-item--bag:hover .accessory-bag__front,
+.accessory-item--bag:focus-within .accessory-bag__front {
+  opacity: 0.12;
+  transform: translateY(12px) scaleY(0.88);
+}
+
 .accessory-item--bag:hover .accessory-img,
 .accessory-item--bag:focus-within .accessory-img {
-  transform: translateY(-6px);
+  transform: translateY(-10px) scale(1.08);
   filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.16));
+  z-index: 3;
 }
 
 /* 平放单品 */
@@ -873,6 +887,173 @@ body.is-racking .rack-item {
 
 /* 删除按钮 */
 .accessory-item__delete {
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+/* ---------------------------------------------------------------- 鞋柜 */
+
+.shoe-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shoe-rack {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.shoe-rack::-webkit-scrollbar {
+  height: 6px;
+}
+
+.shoe-rack::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.shoe-track {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: max-content;
+  min-width: 100%;
+  padding: 34px 16px 14px;
+}
+
+.shoe-shelf {
+  position: relative;
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.shoe-shelf[hidden],
+.shoe-board[hidden] {
+  display: none;
+}
+
+.shoe-items {
+  display: flex;
+  align-items: flex-end;
+  gap: 26px;
+  padding-bottom: 8px;
+}
+
+.shoe-board {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.09) 0 2px,
+      rgba(86, 58, 28, 0.05) 2px 4px,
+      transparent 4px 9px
+    ),
+    linear-gradient(180deg, #c9a678, #a87f52 55%, #8a6339);
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.shoe-board--top {
+  top: 178px;
+}
+
+.shoe-board--bottom {
+  top: 342px;
+}
+
+.shoe-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 160px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.shoe-item:hover,
+.shoe-item:focus-within {
+  z-index: 4;
+}
+
+.shoe-item:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.shoe-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 150px;
+  max-height: 120px;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 7px 9px rgba(0, 0, 0, 0.12));
+  transition: transform 220ms var(--ease), filter 220ms var(--ease);
+}
+
+.shoe-item:hover .shoe-img,
+.shoe-item:focus-within .shoe-img {
+  transform: translateY(-6px) scale(1.04);
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.18));
+}
+
+.shoe-missing {
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 96px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-faint);
+  font-size: var(--font-size-xs);
+}
+
+.shoe-tag {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  max-width: 230px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 253, 246, 0.96);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  font-size: 11px;
+  line-height: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  z-index: 5;
+}
+
+.shoe-item:hover .shoe-tag,
+.shoe-item:focus-within .shoe-tag {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.shoe-item__delete {
   top: 0;
   right: 0;
   width: 22px;

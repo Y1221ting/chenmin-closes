@@ -17,6 +17,10 @@ logs/
 衣服生成图/
 衣服设计图/
 
+# 人体模特 / 试衣生成图（只提交提示词文档）
+avatar_base_*
+tryon_*
+
 # 系统文件
 .DS_Store
 Thumbs.db

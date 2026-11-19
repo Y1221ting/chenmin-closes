@@ -149,6 +149,18 @@
       document.body.classList.add('is-racking');
     }
 
+    // 拖动靠近左右边缘时自动滚动
+    const scroll = drag.rail.closest('.rack-scroll');
+    if (scroll) {
+      const scrollRect = scroll.getBoundingClientRect();
+      const edge = 60;
+      if (event.clientX < scrollRect.left + edge) {
+        scroll.scrollLeft -= 16;
+      } else if (event.clientX > scrollRect.right - edge) {
+        scroll.scrollLeft += 16;
+      }
+    }
+
     const items = Array.from(drag.rail.querySelectorAll('.rack-item'));
     if (!items.length) return;
 
@@ -321,10 +333,20 @@
 
     const suffix = imageVersion(item);
     const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    el.setAttribute('aria-label', metaText ? `${item.name} · ${metaText}` : item.name);
 
     el.innerHTML = `
       ${src ? `<img src="${src}" alt="" loading="lazy">` : '<span class="shelf-item__empty">无图</span>'}
       <span class="shelf-item__name">${escape(item.name)}</span>
+      <span class="shelf-item__meta">${escape(metaText)}</span>
       <button class="shelf-item__delete" type="button" title="删除">✕</button>
     `;
 

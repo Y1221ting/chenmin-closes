@@ -149,6 +149,22 @@ def main() -> int:
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}")
 
+        # 2.2 鞋包隔板：悬停信息（类别 · 颜色）
+        shoe_body = json.dumps(
+            {"name": "UI 测试运动鞋", "category": "shoes", "color": "black"},
+            ensure_ascii=False,
+        ).encode("utf-8")
+        call("POST", base + "/api/garments", shoe_body, "application/json")
+        html = dump_dom(browser, base + "/", profile)
+        for needle, label in [
+            ('class="shelf-item"', "隔板渲染鞋包配饰"),
+            ('class="shelf-item__meta"', "隔板悬停信息元素"),
+            ("鞋 · 黑色", "隔板信息包含类别与颜色"),
+        ]:
+            ok = needle in html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
+
         # 3. 筛选控件
         for needle, label in [
             ('id="filter-color"', "颜色筛选下拉框"),

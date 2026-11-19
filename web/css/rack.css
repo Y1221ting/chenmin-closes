@@ -446,6 +446,23 @@ body.is-racking .rack-item {
   text-overflow: ellipsis;
 }
 
+.shelf-item__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+
+.shelf-item:hover .shelf-item__meta,
+.shelf-item:focus-within .shelf-item__meta {
+  opacity: 1;
+}
+
 .shelf-item__delete {
   top: 6px;
   right: 6px;

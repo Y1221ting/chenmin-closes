@@ -139,7 +139,8 @@
 
 .rack-item__garment {
   position: absolute;
-  top: 42px;
+  /* 比衣架三角底部略高，让肩膀压住衣架，看起来是挂着的 */
+  top: 38px;
   left: 50%;
   width: 140px;
   height: 210px;
@@ -158,8 +159,11 @@
 
 .rack-item__garment img {
   position: absolute;
-  inset: 0;
-  margin: auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  margin: 0 auto;
   width: auto;
   height: auto;
   max-width: 100%;

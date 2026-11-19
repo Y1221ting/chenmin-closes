@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import sqlite3
 
-from ..config import CATEGORY_LABELS, COLOR_LABELS, SEASON_LABELS
+from ..config import (
+    CATEGORY_LABELS,
+    COLOR_LABELS,
+    DISPLAY_STYLE_LABELS,
+    SEASON_LABELS,
+)
 from ..db import get_conn
 from ..errors import NotFoundError, ServiceError, ValidationError
 from ..models import dump_list, row_to_dict, rows_to_dicts
@@ -31,6 +36,11 @@ def _validate_meta(data: dict) -> dict:
     if color and color not in COLOR_LABELS:
         raise ValidationError("颜色不在可选范围内")
 
+    # 配饰的摆放方式：挂杆 / 纸袋 / 平放，其他类别保持默认值
+    display_style = data.get("display_style") or "hang"
+    if display_style not in DISPLAY_STYLE_LABELS:
+        raise ValidationError("摆放方式不在可选范围内")
+
     seasons = [item for item in (data.get("seasons") or []) if item in SEASON_LABELS]
     occasions = [
         item.strip()
@@ -42,6 +52,7 @@ def _validate_meta(data: dict) -> dict:
         "name": name,
         "category": category,
         "color": color,
+        "display_style": display_style,
         "seasons": seasons,
         "occasions": occasions,
         "brand": (data.get("brand") or "").strip() or None,
@@ -166,13 +177,14 @@ def create_garment(data: dict) -> dict:
 
             cursor = conn.execute(
                 "INSERT INTO garments "
-                "(name, category, color, seasons, occasions, brand, price, "
-                "purchase_date, notes, created_at, updated_at, sort_order) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "(name, category, color, display_style, seasons, occasions, brand, "
+                "price, purchase_date, notes, created_at, updated_at, sort_order) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     meta["name"],
                     meta["category"],
                     meta["color"],
+                    meta["display_style"],
                     dump_list(meta["seasons"]),
                     dump_list(meta["occasions"]),
                     meta["brand"],
@@ -203,13 +215,15 @@ def update_garment(garment_id: int, data: dict) -> dict:
     try:
         with conn:
             cursor = conn.execute(
-                "UPDATE garments SET name = ?, category = ?, color = ?, seasons = ?, "
-                "occasions = ?, brand = ?, price = ?, purchase_date = ?, notes = ?, "
-                "updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+                "UPDATE garments SET name = ?, category = ?, color = ?, "
+                "display_style = ?, seasons = ?, occasions = ?, brand = ?, price = ?, "
+                "purchase_date = ?, notes = ?, updated_at = ? "
+                "WHERE id = ? AND deleted_at IS NULL",
                 (
                     meta["name"],
                     meta["category"],
                     meta["color"],
+                    meta["display_style"],
                     dump_list(meta["seasons"]),
                     dump_list(meta["occasions"]),
                     meta["brand"],

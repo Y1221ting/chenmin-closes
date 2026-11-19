@@ -15,7 +15,7 @@ from typing import Iterator
 from .config import DB_PATH
 from .utils import logger
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS garments (
@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS garments (
     created_at    TEXT    NOT NULL,
     updated_at    TEXT,
     deleted_at    TEXT,
-    sort_order    INTEGER NOT NULL DEFAULT 0
+    sort_order    INTEGER NOT NULL DEFAULT 0,
+    display_style TEXT    NOT NULL DEFAULT 'hang'
 );
 
 CREATE TABLE IF NOT EXISTS garment_images (
@@ -175,6 +176,16 @@ def _ensure_sort_order(conn: sqlite3.Connection) -> None:
         logger.info("数据库迁移：garments 新增字段 sort_order")
 
 
+def _ensure_display_style(conn: sqlite3.Connection) -> None:
+    """为老版本数据库补上配饰摆放方式字段。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(garments)")}
+    if "display_style" not in columns:
+        conn.execute(
+            "ALTER TABLE garments ADD COLUMN display_style TEXT NOT NULL DEFAULT 'hang'"
+        )
+        logger.info("数据库迁移：garments 新增字段 display_style")
+
+
 def _ensure_item_columns(conn: sqlite3.Connection) -> None:
     """为老版本数据库补上画布单品的遮挡字段。"""
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(outfit_items)")}
@@ -198,6 +209,7 @@ def init_db() -> None:
             _ensure_image_columns(conn)
             _ensure_item_columns(conn)
             _ensure_sort_order(conn)
+            _ensure_display_style(conn)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < SCHEMA_VERSION:
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

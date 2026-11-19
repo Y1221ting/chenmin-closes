@@ -9,6 +9,7 @@ from ..config import (
     APP_VERSION,
     CATEGORIES,
     COLORS,
+    DISPLAY_STYLES,
     SEASONS,
 )
 from ..router import Request
@@ -27,6 +28,7 @@ def get_meta(_req: Request) -> tuple[int, dict]:
             "categories": _options(CATEGORIES),
             "colors": _options(COLORS),
             "seasons": _options(SEASONS),
+            "display_styles": _options(DISPLAY_STYLES),
             "angles": [{"value": value, "label": ANGLE_LABELS[value]} for value in ANGLES],
             "scenes": meta_service.list_scenes(),
         },

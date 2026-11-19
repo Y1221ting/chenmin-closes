@@ -102,6 +102,15 @@ SEASONS = [
 
 SEASON_LABELS = dict(SEASONS)
 
+# 配饰在首页的摆放方式：挂杆 / 纸袋 / 平放
+DISPLAY_STYLES = [
+    ("hang", "挂杆"),
+    ("bag", "纸袋"),
+    ("flat", "平放"),
+]
+
+DISPLAY_STYLE_LABELS = dict(DISPLAY_STYLES)
+
 # 角度图顺序：从左到右对应拖动时的帧序列
 ANGLES = ["front", "front45", "side", "back135", "back"]
 ANGLE_LABELS = {

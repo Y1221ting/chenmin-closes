@@ -165,6 +165,46 @@ def main() -> int:
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
 
+        # 2.3 配饰收纳区：挂杆 / 纸袋 / 平放
+        for name, style, color in [
+            ("UI 测试围巾", "hang", "beige"),
+            ("UI 测试手套", "bag", "red"),
+            ("UI 测试项链", "flat", "yellow"),
+        ]:
+            body = json.dumps(
+                {
+                    "name": name,
+                    "category": "accessory",
+                    "color": color,
+                    "display_style": style,
+                },
+                ensure_ascii=False,
+            ).encode("utf-8")
+            call("POST", base + "/api/garments", body, "application/json")
+
+        html = dump_dom(browser, base + "/", profile)
+        for needle, label in [
+            ('class="accessory-section"', "配饰独立收纳区"),
+            ('class="accessory-item accessory-item--hang"', "挂杆单品"),
+            ('class="accessory-item accessory-item--bag"', "纸袋单品"),
+            ('class="accessory-item accessory-item--flat"', "平放单品"),
+            ('class="accessory-rod"', "细挂杆"),
+            ('class="accessory-clip"', "小夹子"),
+            ('class="accessory-bag__front"', "牛皮纸袋"),
+            ('class="accessory-flat"', "平放台面"),
+            ('class="accessory-tag"', "常驻小标签"),
+            ("UI 测试围巾", "配饰名称显示"),
+            ('data-chips="display_style"', "表单摆放方式选项"),
+            ("摆放方式", "表单摆放方式标签"),
+        ]:
+            ok = needle in html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
+
+        ok = "鞋包配饰" not in html
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 隔板不再混合配饰")
+
         # 3. 筛选控件
         for needle, label in [
             ('id="filter-color"', "颜色筛选下拉框"),

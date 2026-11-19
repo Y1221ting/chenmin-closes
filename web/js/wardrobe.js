@@ -3,7 +3,9 @@
   'use strict';
 
   const CLOTH_CATEGORIES = ['top', 'outer', 'bottom', 'dress'];
-  const SHELF_CATEGORIES = ['shoes', 'bag', 'accessory'];
+  const SHELF_CATEGORIES = ['shoes', 'bag'];
+  const ACCESSORY_CATEGORY = 'accessory';
+  const ACCESSORY_STYLES = ['hang', 'bag', 'flat'];
 
   const state = {
     meta: null,
@@ -368,12 +370,12 @@
     return el;
   }
 
-  function shelfSection(items) {
+  function shelfSection(items, label) {
     const section = document.createElement('section');
     section.className = 'shelf-section';
     section.innerHTML = `
       <div class="rack-section__head">
-        <span class="rack-section__label">鞋包配饰</span>
+        <span class="rack-section__label">${escape(label)}</span>
         <span class="rack-section__count">${items.length}</span>
       </div>
       <div class="shelf">
@@ -384,6 +386,131 @@
 
     const container = section.querySelector('.shelf__items');
     items.forEach((item) => container.appendChild(shelfItem(item)));
+    return section;
+  }
+
+  // ---------------------------------------------------------------- 配饰收纳
+
+  function accessoryStyle(item) {
+    return ACCESSORY_STYLES.includes(item.display_style) ? item.display_style : 'hang';
+  }
+
+  function accessoryTag(item) {
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    return `
+      <span class="accessory-tag">
+        <span class="accessory-tag__name">${escape(item.name)}</span>
+        <span class="accessory-tag__meta">${escape(metaText)}</span>
+      </span>
+    `;
+  }
+
+  function accessoryItem(item) {
+    const style = accessoryStyle(item);
+    const el = document.createElement('div');
+    el.className = `accessory-item accessory-item--${style}`;
+    el.dataset.id = item.id;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+
+    const categoryLabels = labelsOf('categories');
+    const colorLabels = labelsOf('colors');
+    const metaText = [
+      categoryLabels[item.category] || '',
+      item.color ? colorLabels[item.color] || '' : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    el.setAttribute('aria-label', metaText ? `${item.name} · ${metaText}` : item.name);
+
+    const suffix = imageVersion(item);
+    const src = item.thumb ? `/data/${escape(item.thumb)}${suffix}` : '';
+    const image = src
+      ? `<img class="accessory-img" src="${src}" alt="" loading="lazy">`
+      : '<span class="accessory-missing">无图</span>';
+
+    let visual;
+    if (style === 'bag') {
+      visual = `
+        <span class="accessory-bag">
+          ${image}
+          <span class="accessory-bag__front" aria-hidden="true"></span>
+        </span>
+      `;
+    } else if (style === 'flat') {
+      visual = `<span class="accessory-flat">${image}</span>`;
+    } else {
+      visual = `
+        <span class="accessory-clip" aria-hidden="true"></span>
+        ${image}
+      `;
+    }
+
+    el.innerHTML = `
+      ${visual}
+      ${accessoryTag(item)}
+      <button class="accessory-item__delete" type="button" title="删除">✕</button>
+    `;
+
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('.accessory-item__delete')) return;
+      openGarment(item);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openGarment(item);
+      }
+    });
+    el.querySelector('.accessory-item__delete').addEventListener('click', (event) => {
+      handleDelete(event, item);
+    });
+
+    return el;
+  }
+
+  function accessorySection(items) {
+    const section = document.createElement('section');
+    section.className = 'accessory-section';
+
+    const hangItems = items.filter((item) => accessoryStyle(item) === 'hang');
+    const shelfItems = items.filter((item) => accessoryStyle(item) !== 'hang');
+
+    section.innerHTML = `
+      <div class="rack-section__head">
+        <span class="rack-section__label">配饰</span>
+        <span class="rack-section__count">${items.length}</span>
+      </div>
+      <div class="accessory-zone">
+        <div class="accessory-row accessory-row--hang" ${hangItems.length ? '' : 'hidden'}>
+          <div class="accessory-track accessory-track--hang">
+            <div class="accessory-rod" aria-hidden="true"></div>
+            <div class="accessory-items"></div>
+          </div>
+        </div>
+        <div class="accessory-row accessory-row--shelf" ${shelfItems.length ? '' : 'hidden'}>
+          <div class="accessory-track accessory-track--shelf">
+            <div class="accessory-shelf-line" aria-hidden="true"></div>
+            <div class="accessory-items"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const hangBox = section.querySelector('.accessory-row--hang .accessory-items');
+    hangItems.forEach((item) => hangBox.appendChild(accessoryItem(item)));
+    const shelfBox = section.querySelector('.accessory-row--shelf .accessory-items');
+    shelfItems.forEach((item) => shelfBox.appendChild(accessoryItem(item)));
+
     return section;
   }
 
@@ -420,11 +547,24 @@
       els.rack.appendChild(railSection(cat.label, list, cat.value));
     });
 
-    const shelfItems = SHELF_CATEGORIES.flatMap(
+    const accessories = grouped[ACCESSORY_CATEGORY] || [];
+    if (accessories.length) {
+      els.rack.appendChild(accessorySection(accessories));
+    }
+
+    const shelfCategories = SHELF_CATEGORIES.filter(
+      (category) => (grouped[category] || []).length
+    );
+    const shelfItems = shelfCategories.flatMap(
       (category) => grouped[category] || []
     );
     if (shelfItems.length) {
-      els.rack.appendChild(shelfSection(shelfItems));
+      const labels = labelsOf('categories');
+      const label = shelfCategories
+        .map((category) => labels[category] || '')
+        .filter(Boolean)
+        .join(' · ');
+      els.rack.appendChild(shelfSection(shelfItems, label || '鞋包'));
     }
   }
 

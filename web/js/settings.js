@@ -12,6 +12,7 @@
     els.outfitCount = document.getElementById('trash-outfit-count');
     els.backupInfo = document.getElementById('backup-info');
     els.backupBtn = document.getElementById('btn-backup');
+    els.welcomeToggle = document.getElementById('welcome-toggle');
   }
 
   function formatSize(bytes) {
@@ -177,6 +178,12 @@
   function init(_meta) {
     cache();
     els.backupBtn.addEventListener('click', backup);
+    els.welcomeToggle.checked = App.welcome.isEnabled();
+    els.welcomeToggle.addEventListener('change', () => {
+      const on = els.welcomeToggle.checked;
+      App.welcome.setEnabled(on);
+      App.ui.toast(on ? '下次启动会显示欢迎页' : '已关闭启动欢迎页');
+    });
     load();
   }
 

@@ -4,6 +4,7 @@
 
   async function boot() {
     try {
+      App.welcome.init();
       const meta = await App.api.get('/api/meta');
       document.getElementById('app-version').textContent = `v${meta.app.version}`;
       App.nav.init();
@@ -18,7 +19,9 @@
       App.outfitWorn.init(meta);
       App.settings.init(meta);
       App.nav.handleRoute();
+      App.welcome.hide();
     } catch (err) {
+      App.welcome.hide();
       App.ui.toast(`启动失败：${err.message}`, 'error');
       document.getElementById('wardrobe-count').textContent = '本地服务连接失败';
     }

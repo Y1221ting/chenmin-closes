@@ -4,7 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>yt的衣柜</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231a1a1a'/><text x='16' y='22' font-size='17' font-family='sans-serif' fill='white' text-anchor='middle'>W</text></svg>">
+  <script>
+    /* 用户关掉欢迎页时，首帧就直接隐藏，避免闪一下 */
+    try {
+      if (localStorage.getItem('yt-welcome') === 'off') {
+        document.documentElement.classList.add('no-welcome');
+      }
+    } catch (err) {
+      /* localStorage 不可用时保持默认显示 */
+    }
+  </script>
+  <link rel="icon" href="/assets/icon.png">
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/layout.css">
@@ -15,8 +25,17 @@
   <link rel="stylesheet" href="/css/settings.css">
   <link rel="stylesheet" href="/css/detail.css">
   <link rel="stylesheet" href="/css/outfit.css">
+  <link rel="stylesheet" href="/css/welcome.css">
 </head>
 <body>
+  <div class="welcome" id="welcome" role="status" aria-label="正在打开 yt 的衣柜">
+    <div class="welcome__inner">
+      <img class="welcome__art" src="/assets/yt-brand.webp" alt="yt的衣柜">
+      <p class="welcome__status">正在打开你的衣柜</p>
+    </div>
+    <p class="welcome__skip">点击任意处跳过</p>
+  </div>
+
   <div class="app">
     <aside class="sidebar">
       <div class="sidebar__brand">
@@ -269,6 +288,15 @@
           </section>
 
           <section class="settings__section">
+            <h2 class="settings__title">启动体验</h2>
+            <label class="settings__toggle">
+              <input type="checkbox" id="welcome-toggle">
+              <span>启动时显示欢迎页</span>
+            </label>
+            <p class="settings__text">关掉后打开程序会直接进入衣柜，不再等待淡出。</p>
+          </section>
+
+          <section class="settings__section">
             <h2 class="settings__title">回收站</h2>
             <p class="settings__text">
               删除的衣服和搭配会先放进回收站，图片不会立刻删除，可以随时恢复。<br>
@@ -422,6 +450,7 @@
   <script src="/js/settings.js"></script>
   <script src="/js/detail.js"></script>
   <script src="/js/garment-form.js"></script>
+  <script src="/js/welcome.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

@@ -106,6 +106,10 @@ def main() -> int:
             ("yt的衣柜", "页面标题"),
             ("衣柜还是空的", "空状态文案"),
             ("添加衣服", "添加按钮"),
+            ('id="welcome"', "启动欢迎页"),
+            ("welcome__art", "欢迎页花体图"),
+            ("正在打开你的衣柜", "欢迎页文案"),
+            ("点击任意处跳过", "欢迎页跳过提示"),
         ]
         for text, label in checks:
             ok = text in html
@@ -488,6 +492,8 @@ def main() -> int:
         settings_html = dump_dom(browser, base + "/#settings", profile)
         for text, label in [
             ("数据安全", "数据安全区块"),
+            ("启动体验", "启动体验区块"),
+            ('id="welcome-toggle"', "欢迎页开关"),
             ("回收站", "回收站区块"),
             ("立即备份", "备份按钮"),
             ("回收站里没有衣服", "空回收站提示"),

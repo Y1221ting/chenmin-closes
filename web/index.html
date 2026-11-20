@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/css/settings.css">
   <link rel="stylesheet" href="/css/detail.css">
   <link rel="stylesheet" href="/css/outfit.css">
+  <link rel="stylesheet" href="/css/model.css">
   <link rel="stylesheet" href="/css/welcome.css">
 </head>
 <body>
@@ -129,6 +130,36 @@
             <button id="btn-new-outfit" class="btn btn--primary" type="button">＋ 新建搭配</button>
           </div>
         </header>
+
+        <section class="model-hero" id="model-hero" hidden>
+          <div class="model-stage">
+            <div class="rotate-view model-view" id="model-view" hidden>
+              <div class="rotate-view__frame" id="model-frame"></div>
+              <div class="rotate-view__dots" id="model-dots"></div>
+              <p class="rotate-view__hint" id="model-hint"></p>
+            </div>
+            <div class="model-empty" id="model-empty">
+              <p class="model-empty__title">还没有基准模特</p>
+              <p class="model-empty__text">
+                把五个角度的透明 PNG 放进 data/model/，<br>
+                就能在这里旋转查看。
+              </p>
+            </div>
+          </div>
+          <div class="model-info">
+            <p class="model-info__eyebrow">MY FITTING MODEL</p>
+            <h2 class="model-info__title">我的试衣模特</h2>
+            <p class="model-info__text">
+              基准模特先住在这里。以后每套搭配的五角度上身图，
+              会在这张卡片里切换展示。
+            </p>
+            <div class="model-info__chips">
+              <span class="chip is-active">基准模特</span>
+              <span class="model-info__soon">搭配试穿 · 即将加入</span>
+            </div>
+            <p class="model-info__note">按住模特左右拖动，查看正面、45°、侧面、135°和背面。</p>
+          </div>
+        </section>
 
         <div class="filters">
           <div class="filters__row" id="outfit-scene-filters"></div>
@@ -443,6 +474,7 @@
   <script src="/js/shortcuts.js"></script>
   <script src="/js/rotate-math.js"></script>
   <script src="/js/rotate-view.js"></script>
+  <script src="/js/model-stage.js"></script>
   <script src="/js/wardrobe.js"></script>
   <script src="/js/outfits.js"></script>
   <script src="/js/outfit-editor.js"></script>

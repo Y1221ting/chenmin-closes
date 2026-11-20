@@ -11,6 +11,7 @@
       App.shortcuts.init();
       App.rotateView.init();
       App.outfitWornView.init();
+      App.modelStage.init();
       App.garmentForm.init(meta);
       App.detail.init(meta);
       App.wardrobe.init(meta);

@@ -25,8 +25,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from PIL import Image, ImageDraw  # noqa: E402
 
+from app.config import ANGLES  # noqa: E402
 from app.db import init_db  # noqa: E402
 from app.server import start_server  # noqa: E402
+from app.services import model_service  # noqa: E402
 from app.utils import ensure_dirs, setup_logging  # noqa: E402
 
 BROWSERS = [
@@ -395,11 +397,30 @@ def main() -> int:
             "application/json",
         )
 
+        for angle in ANGLES:
+            model_service.save_image(angle, make_png())
+
         outfits_html = dump_dom(browser, base + "/#outfits", profile)
         for text, label in [("UI 搭配", "搭配名称"), ("1 套搭配", "搭配数量")]:
             ok = text in outfits_html
             failures += 0 if ok else 1
             print(f"[{'PASS' if ok else 'FAIL'}] {label}：{text}")
+
+        for needle, label in [
+            ('class="model-hero"', "搭配页模特卡片"),
+            ('id="model-view"', "模特旋转视图"),
+            ('id="model-dots"', "模特角度圆点"),
+            ("我的试衣模特", "模特标题"),
+            ("基准模特", "基准模特标签"),
+        ]:
+            ok = needle in outfits_html
+            failures += 0 if ok else 1
+            print(f"[{'PASS' if ok else 'FAIL'}] {label}：{needle}")
+
+        model_images = outfits_html.count('class="rotate-view__img"')
+        ok = model_images == 5
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 模特五角度渲染（实际 {model_images}）")
 
         ok = 'id="sidebar-catalog" hidden' in outfits_html
         failures += 0 if ok else 1

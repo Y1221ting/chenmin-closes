@@ -86,6 +86,7 @@
     if (hash === '#outfits') {
       showPage('page-outfits');
       App.outfits.load();
+      if (App.modelStage) App.modelStage.load();
       return;
     }
     if (hash === '#settings') {
